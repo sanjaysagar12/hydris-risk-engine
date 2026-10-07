@@ -1,0 +1,325 @@
+# Units: unit_verified true only when confirmed from the _label strings in the real data (see docs/DATA_NOTES.md).
+# display: percent (raw is a 0-1 fraction shown x100 with %), number (raw shown as-is + unit)
+#
+# Per-risk text keys (all full sentences, filled only from data by reasoning/reason_builder.py):
+#   what_it_measures, value (optional override), impact_present, impact_watch, cases.<case>.{headline,value,rule}
+defaults:
+  present_min_cat: 3   # High
+  watch_min_cat: 2     # Medium-high
+  source: "WRI Aqueduct 4.0 baseline_annual"
+  basin_caveat: "Basin-level value; does not reflect the factory's own water sources."
+  kind: risk           # risk | impact (impact indicators are excluded from risk counts)
+  # scale (set per risk): the geographic unit one value applies to - sub-basin | aquifer | country | composite.
+  # Measured from the data, see docs/DATA_NOTES.md.
+
+# Sentence templates. A sentence whose inputs are missing is skipped, so no "None"/"nan" can reach the user.
+templates:
+  status_word: {present: Present, watch: Watch, not_present: Not present, not_applicable: Not applicable, no_data: No data, error: Error}
+  headline: "{status}: {cat_name} {short_name_l} ({raw_short})"
+  kind_prefix: "Downstream impact – "
+  headline_no_raw: "{status}: {short_name_l} ({label_clean})"
+  headline_no_value: "{status}: {short_name_l}"
+  value: "In sub-basin {pfaf_id}{place}, {name_l} is {raw_display}, which Aqueduct classes as {label_clean}."
+  value_no_raw: "In sub-basin {pfaf_id}{place}, Aqueduct classes {name_l} as {label_clean}."
+  rule_present: "Hydris marks this risk Present from {present_name} and Watch from {watch_name}, so this site, at {cat_title}, is Present."
+  rule_watch: "Hydris marks this risk Present from {present_name} and Watch from {watch_name}, so this site is on Watch."
+  rule_not_present: "Hydris marks this risk Present from {present_name} and Watch from {watch_name}, so this site, at {cat_title}, is below the Watch level."
+  rule_no_data: "Aqueduct has no value for this site's polygon, so no status can be assigned."
+  peak: "{peak_noun} peaks in {month} at {value}"
+  peak_months: ", with {n} of 12 months at {present_title} or above"
+  future: "under business as usual it reaches {value} by 2050"
+  gap_below: ", {amount} below the {present_title} line"
+  gap_above: ", {amount} above the {present_title} line"
+  same: ", about the same as baseline"
+  unchanged: ", no change from baseline"
+  caveat_source_4_0: "Source: WRI Aqueduct 4.0."
+  caveat_source_3_0: "Source: WRI Aqueduct 4.0 dataset; this indicator was last updated in Aqueduct 3.0{period}."
+  snapped: "The site lies {km} km outside the nearest Aqueduct polygon; values are from that polygon."
+  unmatched: "This site could not be matched to an Aqueduct polygon, or to one within the snapping tolerance, so no assessment is possible."
+  error: "This risk could not be assessed: {message}"
+
+risks:
+  bws:
+    scale: sub-basin
+    name: Baseline water stress
+    short_name: water stress
+    peak_noun: Stress
+    group: "Physical: quantity"
+    vintage: "4.0"
+    unit: ratio
+    display: percent
+    unit_verified: true       # labels: "Medium - High (20-40%)"
+    arid_status: present
+    reporting_threshold: 0.40
+    thresholds: [0.10, 0.20, 0.40, 0.80]   # from the labels; index = category - 1
+    what_it_measures: "Baseline water stress compares total water demand with the renewable surface and groundwater supply available."
+    value: "In sub-basin {pfaf_id}{place}, demand is {raw_display} of supply, which Aqueduct classes as {label_clean}."
+    impact_present: "Factories here face strong competition for water, with higher risk of supply cuts, rising costs and permit pressure."
+    impact_watch: "If stress reaches {present_title}, factories here face more competition for water, with higher risk of supply cuts, rising costs and permit pressure."
+    cases:
+      arid:
+        headline: "{status}: very dry, low-use basin (no reliable stress ratio)"
+        impact: "Water is scarce in absolute terms, so a new or expanding factory can quickly create competition, with higher risk of supply limits and permit pressure."
+        value: "In sub-basin {pfaf_id}{place}, Aqueduct classes this area as {label_clean}."
+        rule: "Aqueduct does not calculate a reliable stress ratio for very dry, low-use basins; Hydris treats them as {status} because any new withdrawal can quickly raise stress."
+  bwd:
+    scale: sub-basin
+    name: Baseline water depletion
+    short_name: water depletion
+    peak_noun: Depletion
+    group: "Physical: quantity"
+    vintage: "4.0"
+    unit: ratio
+    display: percent
+    unit_verified: true       # labels: "High (50-75%)"
+    arid_status: present
+    thresholds: [0.05, 0.25, 0.50, 0.75]
+    what_it_measures: "Baseline water depletion compares the water consumed (not returned) each year with the water available, showing how far local supplies are being drawn down."
+    value: "In sub-basin {pfaf_id}{place}, consumption is {raw_display} of available supply, which Aqueduct classes as {label_clean}."
+    impact_present: "Factories here rely on water sources that are being drawn down, with falling reliability, deeper pumping and stronger regulatory scrutiny."
+    impact_watch: "If depletion reaches {present_title}, factories here would rely on water sources that are being drawn down, with falling reliability, deeper pumping and stronger regulatory scrutiny."
+    cases:
+      arid:
+        headline: "{status}: very dry, low-use basin (no reliable depletion ratio)"
+        impact: "Water is scarce in absolute terms, so a new or expanding factory can quickly create competition, with higher risk of supply limits and permit pressure."
+        value: "In sub-basin {pfaf_id}{place}, Aqueduct classes this area as {label_clean}."
+        rule: "Aqueduct does not calculate a reliable depletion ratio for very dry, low-use basins; Hydris treats them as {status} because any new withdrawal can quickly raise depletion."
+  iav:
+    scale: sub-basin
+    thresholds_fmt: "{:.2f}"
+    name: Interannual variability
+    short_name: interannual variability
+    peak_noun: Variability
+    group: "Physical: quantity"
+    vintage: "4.0"
+    unit: ratio
+    display: number
+    unit_verified: true       # labels: "High (0.75-1.00)"; coefficient of variation, unitless
+    thresholds: [0.25, 0.50, 0.75, 1.00]
+    what_it_measures: "Interannual variability measures how much water supply swings from one year to the next."
+    impact_present: "Factories here face supply that can fall well below average in dry years, so planning on average availability can fail."
+    impact_watch: "If variability reaches {present_title}, factories here would face supply that can fall well below average in dry years, so planning on average availability could fail."
+  sev:
+    scale: sub-basin
+    thresholds_fmt: "{:.2f}"
+    name: Seasonal variability
+    short_name: seasonal variability
+    peak_noun: Variability
+    group: "Physical: quantity"
+    vintage: "4.0"
+    unit: ratio
+    display: number
+    unit_verified: true       # labels: "High (1.00-1.33)"; unitless
+    thresholds: [0.33, 0.66, 1.00, 1.33]
+    what_it_measures: "Seasonal variability measures how much water supply varies between the months of an average year."
+    impact_present: "Factories here face dry-season shortages, so storage and backup supply need to be sized for the lean months."
+    impact_watch: "If variability reaches {present_title}, factories here would face dry-season shortages, so storage and backup supply would need to be sized for the lean months."
+  gtd:
+    scale: aquifer
+    name: Groundwater table decline
+    thresholds: [0, 2, 4, 8]
+    short_name: groundwater table decline
+    group: "Physical: quantity"
+    vintage: "3.0"
+    data_period: "1990-2014"
+    unit: cm/yr
+    display: number
+    unit_verified: true       # labels: "High (4-8 cm/y)"
+    insignificant_status: not_present   # cat -9999 with label "Insignificant Trend"
+    basin_caveat: "Aquifer-level value; does not reflect the factory's own water sources."
+    decline_sign: positive    # verified from data: raw > 0 = table falling (cat 1-4); raw < 0 = rising (cat 0)
+    decimals: 1
+    headline: "{status}: {cat_name} {short_name_l} – {raw_display}"
+    what_it_measures: "Groundwater table decline measures how fast the groundwater table is falling where Aqueduct's model finds a statistically significant trend."
+    value: "For the aquifer beneath sub-basin {pfaf_id}{place}, the modelled groundwater table change is {raw_display}, which Aqueduct classes as {label_clean}."
+    impact_present: "Factories here that rely on groundwater may need to deepen borewells, risk borewell failure and pay more for pumping."
+    impact_watch: "If decline reaches {present_title}, factories here that rely on groundwater could need to deepen borewells, risk borewell failure and pay more for pumping."
+    caveats:
+      - "Modelled, not measured; check local well data such as CGWB."
+    cases:
+      insignificant:
+        headline: "{status}: no significant groundwater trend detected"
+        value: "For the aquifer beneath sub-basin {pfaf_id}{place}, the model finds no significant trend, so Hydris marks this risk not present."
+        rule: "This means no decline was detected in the model, not that groundwater here is safe."
+  rfr:
+    scale: sub-basin
+    name: Riverine flood risk
+    thresholds: [0.001, 0.002, 0.006, 0.01]
+    per_people: true
+    short_name: riverine flood risk
+    group: "Physical: quantity"
+    vintage: "3.0"
+    unit: "% of population"
+    display: percent
+    unit_verified: true       # share of population expected to be affected in an average year
+    sig: 2
+    value: "In sub-basin {pfaf_id}{place}, {raw_short} of the population ({per_people}) is expected to be affected by river flooding in an average year, which Aqueduct classes as {label_clean}."
+    what_it_measures: "Riverine flood risk measures the share of the population expected to be affected by river flooding in an average year."
+    impact_present: "Factories here face river flooding that can disrupt logistics, staff access and site operations."
+    impact_watch: "If risk reaches {present_title}, factories here would face river flooding that can disrupt logistics, staff access and site operations."
+    caveats:
+      - "Measures the share of people affected in an average year, not a flood return period or water depth at the site."
+      - "Pluvial (rain-driven) and urban flooding are not covered."
+  cfr:
+    scale: sub-basin
+    name: Coastal flood risk
+    thresholds: [0.000009, 0.00007, 0.0003, 0.002]
+    per_people: true
+    short_name: coastal flood risk
+    group: "Physical: quantity"
+    vintage: "3.0"
+    unit: "% of population"
+    display: percent
+    unit_verified: true
+    sig: 2
+    value: "In sub-basin {pfaf_id}{place}, {raw_short} of the population ({per_people}) is expected to be affected by coastal flooding in an average year, which Aqueduct classes as {label_clean}."
+    no_risk_status: not_present   # cat -1 "No Risk"; cannot tell inland from protected coast
+    what_it_measures: "Coastal flood risk measures the share of the population expected to be affected by coastal flooding in an average year."
+    impact_present: "Factories here face storm-surge and sea-level flooding that can disrupt logistics, staff access and site operations."
+    impact_watch: "If risk reaches {present_title}, factories here would face storm-surge and sea-level flooding that can disrupt logistics, staff access and site operations."
+    caveats:
+      - "Measures the share of people affected in an average year, not a flood return period or water depth at the site."
+      - "Pluvial (rain-driven) and urban flooding are not covered."
+    cases:
+      no_risk:
+        headline: "{status}: no coastal flood risk recorded"
+        value: "In sub-basin {pfaf_id}{place}, Aqueduct records no coastal flood risk for this basin."
+        rule: "Hydris marks this risk not present."
+  drr:
+    scale: sub-basin
+    name: Drought risk
+    thresholds: [0.2, 0.4, 0.6, 0.8]
+    thresholds_fmt: "{:.2f}"
+    short_name: drought risk
+    group: "Physical: quantity"
+    vintage: "3.0"
+    unit: index 0-1
+    unit_display: ""          # shown as a bare number; the 0-1 scale is stated in what_it_measures
+    display: number
+    present_min_cat: 4        # drr has 5 labels: Low, Low-Medium, Medium, Medium-High, High (cat 0-4)
+    watch_min_cat: 3
+    cat_titles: {0: Low, 1: Low–Medium, 2: Medium, 3: Medium–High, 4: High}
+    unit_verified: true       # labels: "High (0.8-1.0)"
+    what_it_measures: "Drought risk combines how often and how severely surface-water drought occurs with exposure and vulnerability, on a 0 to 1 scale."
+    impact_present: "Factories here face drought years that can cut surface-water supply and raise costs."
+    impact_watch: "If risk reaches {present_title}, factories here would face drought years that can cut surface-water supply and raise costs."
+    caveats:
+      - "Reflects surface-water drought, not groundwater drought."
+  ucw:
+    scale: country
+    name: Untreated connected wastewater
+    thresholds: [0.30, 0.60, 0.90, 1.00]
+    short_name: untreated wastewater
+    group: "Physical: quality"
+    vintage: "3.0"
+    unit: "% of connected wastewater"
+    display: percent
+    unit_verified: true       # labels: "High (90-100%)"
+    basin_caveat: null        # country-level, see caveats
+    low_collection_status: watch   # cat -1 "No to Low Wastewater Collected"
+    value: "Based on country-level data for {country}, {raw_display} of the wastewater collected by sewers is released untreated, which Aqueduct classes as {label_clean}."
+    what_it_measures: "Untreated connected wastewater measures the share of wastewater collected by sewers that is released without treatment."
+    impact_present: "Factories here draw on rivers that may be polluted, raising treatment costs and the risk of poor-quality intake water."
+    impact_watch: "If this reaches {present_title}, factories here would draw on rivers that may be polluted, raising treatment costs and the risk of poor-quality intake water."
+    caveats:
+      - "Country-level value, not local conditions."
+      - "Covers household sewage only; industrial effluent is not included."
+    cases:
+      low_collection:
+        headline: "{status}: very little wastewater is collected"
+        value: "Based on country-level data for {country}, Aqueduct records very little wastewater collected by sewers, so this indicator does not capture pollution from uncollected sewage; the river may still be polluted."
+        rule: "Hydris puts this on Watch because the indicator cannot rule out pollution here."
+  cep:
+    scale: sub-basin
+    name: Coastal eutrophication potential
+    thresholds: [-5, 0, 1, 5]
+    short_name: coastal eutrophication potential
+    group: "Physical: quality"
+    vintage: "3.0"
+    kind: impact
+    unit: "ICEP index"
+    unit_display: ""
+    display: number
+    impact_note: "This measures pollution the basin contributes to coastal waters, not a risk to the factory's own supply."
+    headline: "{status}: {cat_name} {short_name_l} (ICEP index {raw_short})"
+    value: "In sub-basin {pfaf_id}{place}, coastal eutrophication potential is an ICEP index of {raw_short}, which Aqueduct classes as {label_clean}."
+    unit_verified: false      # scale visible in labels ("1 to 5") but unit name not confirmed
+    what_it_measures: "Coastal eutrophication potential measures the potential for nutrient pollution to cause algal blooms in coastal waters downstream."
+    impact_present: "Factories here sit upstream of coastal waters at risk of nutrient pollution, which can affect water quality and reputation."
+    impact_watch: "If this reaches {present_title}, factories here would sit upstream of coastal waters at risk of nutrient pollution, which can affect water quality and reputation."
+  udw:
+    scale: sub-basin
+    name: Unimproved / no drinking water
+    thresholds: [0.025, 0.05, 0.10, 0.20]
+    short_name: drinking-water access gap
+    group: "Regulatory & reputational"
+    vintage: "3.0"
+    unit: "% of population"
+    display: percent
+    unit_verified: true       # labels: "High (10-20%)"
+    basin_caveat: null
+    value: "In sub-basin {pfaf_id}{place}, {raw_display} of the population lacks access to an improved drinking-water source, which Aqueduct classes as {label_clean}."
+    what_it_measures: "Unimproved drinking water measures the share of the population without access to an improved drinking-water source."
+    impact_present: "Factories here operate near communities without safe drinking water, so their water use is sensitive and carries reputational and licence-to-operate risk."
+    impact_watch: "If this reaches {present_title}, factories here would operate near communities without safe drinking water, so their water use would be sensitive and carry reputational risk."
+    caveats:
+      - "Sub-basin estimate; access near the factory may differ."
+  usa:
+    scale: sub-basin
+    name: Unimproved / no sanitation
+    thresholds: [0.025, 0.05, 0.10, 0.20]
+    short_name: sanitation access gap
+    group: "Regulatory & reputational"
+    vintage: "3.0"
+    unit: "% of population"
+    display: percent
+    unit_verified: true
+    basin_caveat: null
+    value: "In sub-basin {pfaf_id}{place}, {raw_display} of the population lacks access to improved sanitation, which Aqueduct classes as {label_clean}."
+    what_it_measures: "Unimproved sanitation measures the share of the population without access to improved sanitation."
+    impact_present: "Factories here operate near communities without safe sanitation, so their water use and discharge are sensitive and carry reputational risk."
+    impact_watch: "If this reaches {present_title}, factories here would operate near communities without safe sanitation, so their water use and discharge would be sensitive."
+    caveats:
+      - "Sub-basin estimate; access near the factory may differ."
+  rri:
+    scale: country
+    name: Peak RepRisk country ESG risk index
+    thresholds: [25, 50, 60, 75]
+    short_name: country ESG risk
+    group: "Regulatory & reputational"
+    vintage: "3.0"
+    unit: "index (0-100)"
+    unit_display: "/100"
+    decimals: 0
+    display: number
+    unit_verified: true       # raw 0-100; labels "High (60-75%)"
+    basin_caveat: null
+    value: "In {country}, the country's peak RepRisk ESG risk index is {raw_display}, which Aqueduct classes as {label_clean}."
+    what_it_measures: "The RepRisk index measures the country's peak level of reported ESG risk, including water-related controversies."
+    impact_present: "Factories here face closer scrutiny from buyers, media and regulators on water-related conduct."
+    impact_watch: "If this reaches {present_title}, factories here would face closer scrutiny from buyers, media and regulators on water-related conduct."
+    caveats:
+      - "Country-level snapshot; may not reflect current events."
+  overall_textile:
+    scale: composite
+    name: Overall water risk (textiles)
+    thresholds: [1, 2, 3, 4]
+    short_name: overall textile water risk
+    group: "Overall"
+    vintage: "4.0"
+    unit: "score 0-5"
+    display: score
+    decimals: 2
+    unit_verified: true
+    what_it_measures: "The overall textile score combines water quantity, quality and regulatory risks, weighted for the textile sector, into one 0 to 5 score."
+    value: "In sub-basin {pfaf_id}{place}, the overall water risk score for textiles is {raw_display}, which Aqueduct classes as {label_clean}."
+    impact_present: "Textile factories here face high overall water-related exposure and should be prioritised for review."
+    impact_watch: "If the score reaches {present_title}, textile factories here would face high overall water-related exposure."
+    group_names: {qan: water quantity, qal: water quality, rrr: regulatory and reputational risk}
+    breakdown: "The score combines {parts}."
+    explain: "Overall is {tot} while water stress alone is only {bws_label}, because the index also counts {higher}, which {verb} higher than water quantity ({qan})."
+    incomplete_caveat: "About {pct}% of the weighting had no data here, so the score rests on incomplete inputs."
+    top_indicators: "The highest-scoring indicators here are {items}."
+    caveats:
+      - "Composite index, not validated by WRI; use for prioritisation, not as a measured value."
+      - "Aqueduct converts the weighted composite to a 0-5 score by quantile remapping, so it is not a simple average of the group scores."

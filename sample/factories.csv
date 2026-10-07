@@ -1,0 +1,7 @@
+site_id,site_name,lat,lon,country,sector,address
+F001,Tiruppur Mill,11.1085,77.3411,India,Textiles,"Tiruppur, Tamil Nadu"
+F002,Surat Dyeing Unit,21.1702,72.8311,India,Textiles,"Surat, Gujarat"
+F003,Ludhiana Hosiery Works,30.9010,75.8573,India,Textiles,"Ludhiana, Punjab"
+F004,Savar Garment Factory,23.8583,90.2667,Bangladesh,Textiles,"Savar, Dhaka"
+F005,Ho Chi Minh Weaving Plant,10.8231,106.6297,Vietnam,Textiles,"Ho Chi Minh City"
+F006,Karachi Denim Mill,24.8607,67.0011,Pakistan,Textiles,"Karachi, Sindh"

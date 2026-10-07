@@ -1,0 +1,5 @@
+gdb_glob: "data/raw/**/*.gdb"   # first match is used unless gdb_path is set
+gdb_path: null
+cache_dir: data/cache
+metric_crs: "EPSG:6933"
+nearest_tolerance_km: 5
