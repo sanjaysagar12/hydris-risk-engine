@@ -16,6 +16,9 @@ api = ["fastapi", "uvicorn"]
 [tool.setuptools.packages.find]
 include = ["hydris_risk*"]
 
+[tool.setuptools.package-data]
+hydris_risk = ["reporting/templates/*.j2", "reporting/assets/fonts/*"]
+
 [tool.ruff]
 line-length = 110
 

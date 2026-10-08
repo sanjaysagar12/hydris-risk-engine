@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ doc.title }}: {{ doc.subtitle }}</title>
+<style>
+:root{--ink:#1d2939;--muted:#667085;--rule:#d0d5dd;--blue:#175cd3}
+*{box-sizing:border-box}
+body{font:14px/1.5 "DejaVu Sans","Segoe UI",Arial,sans-serif;color:var(--ink);margin:0;background:#fff}
+main{max-width:920px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:30px;margin:0 0 4px}h2{font-size:21px;margin:0 0 8px}h3{font-size:16px;color:var(--blue);margin:22px 0 8px}h4{font-size:15px;margin:0}
+.sub{color:var(--muted);font-size:16px;margin:0 0 18px}.small{color:var(--muted);font-size:12px}
+.pill{display:inline-block;padding:1px 9px;border-radius:4px;font-weight:700;font-size:12px;white-space:nowrap}
+.s-present{background:#b42318;color:#fff}.s-watch{background:#fdb022;color:#1d2939}.s-not_present{background:#067647;color:#fff}
+.s-not_applicable{background:#667085;color:#fff}.s-no_data{background:#eaecf0;color:#1d2939}.s-error{background:#6941c6;color:#fff}
+.tag{display:inline-block;background:#eaecf0;color:#344054;font-size:11px;padding:0 7px;border-radius:4px;margin-left:4px}
+.callout{background:#f2f4f7;border:1px solid var(--rule);padding:8px 12px;margin:10px 0;border-radius:4px}
+.callout.info{background:#eff8ff;border-color:#b2ddff}.callout.warn{background:#fef0c7;border-color:#fdb022}
+table{border-collapse:collapse;width:100%;font-size:12.5px;margin:6px 0}
+th{background:#f2f4f7;text-align:left}th,td{padding:4px 6px;border-bottom:1px solid var(--rule);vertical-align:top}
+.scroll{overflow-x:auto}
+dl.kv{display:grid;grid-template-columns:max-content 1fr max-content 1fr;gap:2px 14px;font-size:13px;margin:6px 0}
+dl.kv dt{color:var(--muted)}dl.kv dd{margin:0}
+.counts{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule);text-align:center}
+.counts div{padding:6px}.counts b{font-size:20px;display:block}
+.risk{margin:18px 0 26px;border-top:1px solid var(--rule);padding-top:10px}
+.risk h4 .pill{margin-left:8px}.lbl{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin:10px 0 2px}
+.risk p{margin:2px 0}.risk ul{margin:2px 0 2px 18px;padding:0}
+img.chart{max-width:100%;height:auto;display:block}
+.factory{margin-top:40px}
+.matrix td,.matrix th{text-align:center;font-size:11.5px}.matrix td:first-child,.matrix th:first-child{text-align:left}
+.cover{padding:60px 0 30px}
+@media print{
+ @page{size:A4;margin:16mm 14mm}
+ main{max-width:none;padding:0}
+ .factory,.appendix{page-break-before:always}
+ .risk{page-break-inside:avoid}.risk.big{page-break-inside:auto}
+ a{color:inherit;text-decoration:none}.pill,.tag,.callout,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<main>
+{% macro pill(word, status) %}<span class="pill s-{{ status }}">{{ word }}</span>{% endmacro %}
+{% macro img(png) %}{% if png %}<img class="chart" alt="" src="data:image/png;base64,{{ png }}">{% endif %}{% endmacro %}
+
+<section class="cover">
+ <h1>{{ doc.title }}</h1>
+ <p class="sub">{{ doc.subtitle }}</p>
+ <dl class="kv">
+  <dt>Report type</dt><dd>{{ doc.subtitle.split(':')[0] }}</dd>
+  <dt>{{ 'Factory' if doc.report_type == 'factory' else 'Factories' }}</dt><dd>{{ names }}</dd>
+  <dt>Generated</dt><dd>{{ generated }}</dd>
+  <dt>Hydris version</dt><dd>{{ doc.hydris_version }}</dd>
+  <dt>Dataset</dt><dd>{{ doc.dataset_version }}</dd>
+ </dl>
+ <div class="callout">{{ doc.disclaimer }}</div>
+{% if doc.report_type == 'portfolio' %}
+ <nav><h3>Contents</h3><ol>
+  <li><a href="#portfolio">Portfolio summary</a></li>
+  {% for fr in doc.factories %}<li><a href="#f-{{ loop.index }}">{{ fr.context_header.name }}</a></li>{% endfor %}
+  <li><a href="#appendix">Methodology and limitations</a></li>
+ </ol></nav>
+{% endif %}
+</section>
+
+{% if doc.portfolio %}
+{% set p = doc.portfolio %}
+<section id="portfolio" class="appendix">
+ <h2>Portfolio summary</h2>
+ <div class="counts" style="grid-template-columns:repeat(4,1fr)">
+  <div><b>{{ p.kpis.factories }}</b>Factories</div>
+  <div><b>{{ p.kpis.with_present }}</b>With at least 1 Present risk</div>
+  <div><b style="font-size:15px">{% if p.kpis.most_common_local %}{{ p.kpis.most_common_local }} ({{ p.kpis.most_common_local_sites }} sites){% else %}None{% endif %}</b>Most common local risk</div>
+  <div><b>{{ p.kpis.unmatched }}</b>Unmatched factories</div>
+ </div>
+ <p>{{ p.paragraph }}</p>
+ <p class="small">Local risks are sub-basin or aquifer scale; the overall score and downstream impact are not counted.</p>
+ <h3>Status matrix</h3>
+ <div class="scroll"><table class="matrix">
+  <tr><th rowspan="2">Factory</th><th colspan="{{ risk_cols|length }}">Risks</th>{% if impact_cols %}<th colspan="{{ impact_cols|length }}">Downstream impact</th>{% endif %}<th rowspan="2">Textile score (0-5)</th></tr>
+  <tr>{% for c in risk_cols + impact_cols %}<th>{{ c.short_name|capitalize }}</th>{% endfor %}</tr>
+  {% for row in p.matrix %}
+  <tr><td>{{ row.site_name }} ({{ row.site_id }})</td>
+   {% for c in risk_cols + impact_cols %}{% set cell = row.cells[c.risk_id] %}<td><span class="pill s-{{ cell.status }}">{{ cell.word }}</span></td>{% endfor %}
+   <td>{% if row.overall_score is not none %}{{ '%.2f'|format(row.overall_score) }} {{ row.overall_label }}{% else %}No data{% endif %}</td></tr>
+  {% endfor %}
+ </table></div>
+</section>
+{% endif %}
+
+{% macro block(b, uid, chart=none) %}
+<article class="risk {{ 'big' if b.detail == 'full' else '' }}" id="{{ b.risk_id }}-{{ uid }}">
+ <h4>{{ b.risk_name }} {{ pill(b.status_word, b.status.value) }} <span class="tag">{{ b.scale }}</span><span class="tag">Aqueduct {{ b.vintage }}</span>{% if b.kind == 'impact' %}<span class="tag">Downstream impact</span>{% endif %}</h4>
+ <div class="small">{{ b.headline }}</div>
+ <div class="lbl">Why this status</div><p>{{ b.why }}</p>
+ {% if b.threshold_position %}<div class="lbl">Where it sits against the thresholds</div><p>{{ b.threshold_position }}</p>{% endif %}
+ {% if b.what_would_change %}<div class="lbl">What would change the status</div><p>{{ b.what_would_change }}</p>{% endif %}
+ {% if b.extra_notes %}<div class="lbl">Notes</div><ul>{% for n in b.extra_notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+ {% if b.detail == 'full' %}
+  {% if b.outlook_sentence or b.outlook_table %}
+   <div class="lbl">Outlook</div>
+   {% if b.outlook_sentence %}<p>{{ b.outlook_sentence }}</p>{% endif %}
+   {% if b.outlook_table %}
+   <table style="max-width:560px"><tr><th>Scenario</th><th>Today</th><th>2030</th><th>2050</th><th>2080</th></tr>
+    {% for r in b.outlook_table %}<tr><td>{{ r.scenario }}</td><td>{{ r.today }}</td><td>{{ r['2030'] }}</td><td>{{ r['2050'] }}</td><td>{{ r['2080'] }}</td></tr>{% endfor %}
+   </table>
+   {% endif %}
+  {% endif %}
+  {% if chart or b.monthly_chart_png %}<div class="lbl">{{ 'Overall breakdown' if chart else 'Seasonal pattern' }}</div>{{ img(chart or b.monthly_chart_png) }}{% endif %}
+  <div class="lbl">Values</div>
+  {% set v = b.values %}
+  <dl class="kv">
+   {% if v.raw_display %}<dt>Value</dt><dd>{{ v.raw_display }}</dd>{% endif %}
+   {% if v.raw is not none %}<dt>Raw value</dt><dd>{{ '%.6g'|format(v.raw) }}</dd>{% endif %}
+   {% if v.unit %}<dt>Unit</dt><dd>{{ v.unit }}</dd>{% endif %}
+   {% if v.score is not none %}<dt>Score (0-5)</dt><dd>{{ '%.2f'|format(v.score) }}</dd>{% endif %}
+   {% if v.category is not none %}<dt>Category</dt><dd>{{ v.category }}</dd>{% endif %}
+   {% if v.label %}<dt>Aqueduct label</dt><dd>{{ v.label }}</dd>{% endif %}
+   <dt>Scale</dt><dd>{{ b.scale }}</dd><dt>Vintage</dt><dd>Aqueduct {{ b.vintage }}</dd><dt>Source</dt><dd>{{ b.source }}</dd>
+   {% if b.pfaf_id is not none %}<dt>Sub-basin (pfaf_id)</dt><dd>{{ b.pfaf_id }}</dd>{% endif %}
+   {% if b.string_id %}<dt>String ID</dt><dd>{{ b.string_id }}</dd>{% endif %}
+  </dl>
+ {% endif %}
+ {% if b.caveats %}<div class="lbl">Caveats</div><ul>{% for c in b.caveats %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+</article>
+{% endmacro %}
+
+{% for fr in doc.factories %}
+{% set h = fr.context_header %}{% set uid = loop.index %}
+<section class="factory" id="f-{{ loop.index }}">
+ <h2>{{ h.name }}</h2>
+ <dl class="kv">
+  <dt>Site ID</dt><dd>{{ h.site_id }}</dd><dt>Coordinates</dt><dd>{{ '%.4f'|format(h.lat) }}, {{ '%.4f'|format(h.lon) }}</dd>
+  {% if h.pfaf_id is defined %}<dt>Sub-basin (pfaf_id)</dt><dd>{{ h.pfaf_id }}</dd>{% endif %}
+  {% if h.string_id is defined %}<dt>String ID</dt><dd>{{ h.string_id }}</dd>{% endif %}
+  <dt>State / country</dt><dd>{{ [h.get('state'), h.get('country')]|select|join(', ') }}</dd>
+  <dt>Match method</dt><dd>{{ h.match_method }}{% if h.snap_distance_km is defined %} ({{ '%.1f'|format(h.snap_distance_km) }} km){% endif %}</dd>
+ </dl>
+ {% if h.match_warning is defined %}<div class="callout warn">Warning: {{ h.match_warning }}</div>{% endif %}
+ {% if fr.location_caveats %}<ul>{% for c in fr.location_caveats %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+
+ <h3>At a glance</h3>
+ <div class="counts">
+ {% for key, word in [('present','Present'),('watch','Watch'),('not_present','Not present'),('no_data','No data'),('error','Error')] %}
+  <div><span class="pill s-{{ key }}">{{ word }}</span><b>{{ fr.counts.get(key, 0) }}</b></div>
+ {% endfor %}
+ </div>
+ <p class="small">Risk counts exclude the overall textile score and the downstream-impact indicator.</p>
+ <p>{{ fr.at_a_glance }}</p>
+
+ <h3>Risk summary</h3>
+ <div class="scroll"><table><tr><th>Risk</th><th>Group</th><th>Scale</th><th>Status</th><th>Value</th><th>Aqueduct label</th></tr>
+ {% for r in fr.summary_rows %}<tr><td>{{ r.risk }}</td><td>{{ r.group }}</td><td>{{ r.scale }}</td><td>{{ pill(r.status_word, r.status) }}</td><td>{{ r.value }}</td><td>{{ r.label }}</td></tr>{% endfor %}
+ </table></div>
+
+ <h3>Overall textile risk</h3>
+ {{ block(fr.overall, uid, fr.overall_chart_png) }}
+ {% for title, blocks, intro in [('Risks present', fr.present, none), ('Risks on watch', fr.watch, none), ('Risks not present', fr.not_present, fr.not_present_framing), ('No data or errors', fr.no_data, none), ('Downstream impact', fr.impact, fr.impact_intro)] %}
+  {% if blocks %}
+  <h3>{{ title }} ({{ blocks|length }})</h3>
+  {% if intro %}<div class="callout info">{{ intro }}</div>{% endif %}
+  {% for b in blocks %}{{ block(b, uid) }}{% endfor %}
+  {% endif %}
+ {% endfor %}
+</section>
+{% endfor %}
+
+<section class="appendix" id="appendix">
+ <h2>Methodology and limitations</h2>
+ <p>{{ doc.methodology_intro }}</p>
+ {% for n in doc.methodology_notes %}<p>{{ n }}</p>{% endfor %}
+ <div class="scroll"><table><tr><th>Risk</th><th>What it measures</th><th>Unit</th><th>Scale</th><th>Aqueduct</th><th>Watch line</th><th>Present line</th></tr>
+ {% for m in doc.methodology %}<tr><td>{{ m.risk }}{% if m.kind == 'impact' %} (impact){% endif %}</td><td>{{ m.what_it_measures }}</td><td>{{ m.unit }}</td><td>{{ m.scale }}</td><td>{{ m.vintage }}</td><td>{{ m.watch_line }}</td><td>{{ m.present_line }}</td></tr>{% endfor %}
+ </table></div>
+ <h3>All values</h3>
+ {% for fr in doc.factories %}
+ <h4>{{ fr.context_header.name }} ({{ fr.context_header.site_id }})</h4>
+ <div class="scroll"><table><tr><th>Risk</th><th>Value</th><th>Raw</th><th>Unit</th><th>Score</th><th>Cat.</th><th>Aqueduct label</th><th>Scale</th><th>Ver.</th></tr>
+ {% for r in fr.summary_rows %}<tr><td>{{ r.risk }}</td><td>{{ r.value }}</td><td>{{ r.raw }}</td><td>{{ r.unit }}</td><td>{{ r.score }}</td><td>{{ r.category }}</td><td>{{ r.label }}</td><td>{{ r.scale }}</td><td>{{ r.vintage }}</td></tr>{% endfor %}
+ </table></div>
+ {% endfor %}
+ <h3>Status definitions</h3>
+ {% for d in doc.status_definitions %}<p><span class="pill s-{{ 'no_data' if d.status == 'impact' else d.status }}">{{ status_words[d.status] }}</span> {{ d.text }}</p>{% endfor %}
+ <h3>Limitations</h3>
+ <ul>{% for l in doc.limitations %}<li>{{ l }}</li>{% endfor %}</ul>
+ <h3>Data and citation</h3>
+ <p>{{ doc.citation }} (<a href="{{ doc.citation_url }}">{{ doc.citation_url }}</a>). {{ doc.data_license }}</p>
+</section>
+</main>
+</body>
+</html>
