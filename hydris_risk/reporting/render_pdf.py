@@ -47,7 +47,7 @@ def _styles() -> dict[str, ParagraphStyle]:
         "body": ParagraphStyle("body", fontSize=8.6, leading=12, spaceAfter=3, **base),
         "small": ParagraphStyle("small", fontSize=7.4, leading=10, textColor=colors.HexColor(MUTED), fontName=REG, spaceAfter=2),
         "label": ParagraphStyle("label", fontName=BOLD, fontSize=7.2, leading=10, textColor=colors.HexColor(MUTED), spaceBefore=4,
-                                spaceAfter=1),
+                                spaceAfter=1, keepWithNext=1),
         "title": ParagraphStyle("title", fontName=BOLD, fontSize=26, leading=31, textColor=colors.HexColor(INK), spaceAfter=6),
         "subtitle": ParagraphStyle("subtitle", fontName=REG, fontSize=13, leading=18, textColor=colors.HexColor(MUTED), spaceAfter=14),
         "h1": ParagraphStyle("h1", fontName=BOLD, fontSize=17, leading=21, textColor=colors.HexColor(INK), spaceAfter=6),
@@ -187,8 +187,9 @@ def _bullets(items: list[str], st: dict) -> list[Paragraph]:
     return [Paragraph(esc(t), st["bullet"], bulletText="•") for t in items]
 
 
-def risk_block(b: RiskBlock, st: dict, chart_png: bytes | None = None, lead: list | None = None) -> KeepTogether:
-    """One risk: title, why, position, what would change, notes, outlook, seasonal chart, values, caveats. Empty parts are omitted."""
+def risk_block(b: RiskBlock, st: dict, chart_png: bytes | None = None, lead: list | None = None) -> list:
+    """One risk as flowables. Only title + why + position are kept together; charts and tables may split across pages.
+    Compact blocks (not present, no data, error) leave out the outlook, chart and values table. Empty parts are omitted."""
     tags = [tag(b.scale), tag(f"Aqueduct {b.vintage}")]
     if b.kind == "impact":
         tags.append(tag("Downstream impact"))
@@ -201,11 +202,13 @@ def risk_block(b: RiskBlock, st: dict, chart_png: bytes | None = None, lead: lis
 
     part("Why this status", b.why)
     part("Where it sits against the thresholds", b.threshold_position)
+    head, out = out, []
     part("What would change the status", b.what_would_change)
     if b.extra_notes:
         out.append(Paragraph("NOTES", st["label"]))
         out.extend(_bullets(b.extra_notes, st))
-    if b.outlook_sentence or b.outlook_table:
+    full = b.detail == "full"
+    if full and (b.outlook_sentence or b.outlook_table):
         out.append(Paragraph("OUTLOOK", st["label"]))
         if b.outlook_sentence:
             out.append(Paragraph(esc(b.outlook_sentence), st["body"]))
@@ -218,23 +221,22 @@ def risk_block(b: RiskBlock, st: dict, chart_png: bytes | None = None, lead: lis
             t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f4f7")), ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor(RULE)),
                                    ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
             out.append(t)
-    if chart_png or b.monthly_chart_png:
+    if full and (chart_png or b.monthly_chart_png):
         out.append(Paragraph("OVERALL BREAKDOWN" if chart_png else "SEASONAL PATTERN", st["label"]))
-        out.append(_image(chart_png or b.monthly_chart_png, 150 * mm))
+        out.append(_image(chart_png or b.monthly_chart_png, 130 * mm))
     v = b.values
-    values = _grid([
+    values = None if not full else _grid([  # basin ids, source and vintage are in the header, tags and appendix
         ("Value", v.raw_display or ""), ("Raw value", f"{v.raw:.6g}" if v.raw is not None else ""), ("Unit", v.unit or ""),
         ("Score (0-5)", f"{v.score:.2f}" if v.score is not None else ""), ("Category", str(v.category) if v.category is not None else ""),
-        ("Aqueduct label", v.label or ""), ("Scale", b.scale), ("Vintage", f"Aqueduct {b.vintage}"), ("Source", b.source),
-        ("Sub-basin (pfaf_id)", str(b.pfaf_id) if b.pfaf_id is not None else ""), ("String ID", b.string_id or ""),
-    ], st, [26 * mm, 52 * mm, 30 * mm, 66 * mm])
+        ("Aqueduct label", v.label or ""),
+    ], st, [15 * mm, 38 * mm, 18 * mm, 28 * mm, 22 * mm, 38 * mm], per_row=3)
     if values is not None:
         out.extend([Paragraph("VALUES", st["label"]), values])
     if b.caveats:
         out.append(Paragraph("CAVEATS", st["label"]))
         out.extend(_bullets(b.caveats, st))
-    out.append(Spacer(1, 4 * mm))
-    return KeepTogether(out)
+    out.append(Spacer(1, 2.5 * mm))
+    return [KeepTogether(head), *out]
 
 
 def _status_cell_style(rows: list[str], col: int, first_row: int) -> list[tuple]:
@@ -287,7 +289,7 @@ def _factory_story(fr: FactoryReport, st: dict) -> list:
                            *_status_cell_style([r["status"] for r in fr.summary_rows], 3, 1)]))
     story.append(t)
 
-    story.append(risk_block(fr.overall, st, chart_png=fr.overall_chart_png, lead=[Paragraph("Overall textile risk", st["h2"])]))
+    story += risk_block(fr.overall, st, chart_png=fr.overall_chart_png, lead=[Paragraph("Overall textile risk", st["h2"])])
     sections = [("Risks present", fr.present, None), ("Risks on watch", fr.watch, None),
                 ("Risks not present", fr.not_present, fr.not_present_framing), ("No data or errors", fr.no_data, None),
                 ("Downstream impact", fr.impact, fr.impact_intro)]
@@ -298,8 +300,9 @@ def _factory_story(fr: FactoryReport, st: dict) -> list:
         if intro:
             lead.append(_callout(intro, st, "#eff8ff", "#b2ddff"))
             lead.append(Spacer(1, 2 * mm))
-        story.append(risk_block(blocks[0], st, lead=lead))
-        story += [risk_block(b, st) for b in blocks[1:]]
+        story += risk_block(blocks[0], st, lead=lead)
+        for b in blocks[1:]:
+            story += risk_block(b, st)
     return story
 
 
@@ -369,6 +372,16 @@ def _appendix_story(doc: ReportDocument, st: dict) -> list:
     words = {"present": "Present", "watch": "Watch", "not_present": "Not present", "no_data": "No data", "error": "Error", "impact": "Downstream impact"}
     defs = [Paragraph(f"{pill(words[d['status']], d['status'] if d['status'] != 'impact' else 'no_data')} &nbsp;{esc(d['text'])}", st["body"])
             for d in doc.status_definitions]
+    story.append(Paragraph("All values", st["h2"]))
+    for fr in doc.factories:
+        h = fr.context_header
+        data = [[Paragraph(x, st["cellb"]) for x in ("Risk", "Value", "Raw", "Unit", "Score", "Cat.", "Aqueduct label", "Scale", "Ver.")]]
+        for r in fr.summary_rows:
+            data.append([Paragraph(esc(r[k]), st["cell"]) for k in ("risk", "value", "raw", "unit", "score", "category", "label", "scale", "vintage")])
+        t = Table(data, colWidths=[31 * mm, 24 * mm, 15 * mm, 18 * mm, 10 * mm, 8 * mm, 34 * mm, 14 * mm, 10 * mm], repeatRows=1)
+        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f4f7")), ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor(RULE)),
+                               ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 1.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5)]))
+        story += [Paragraph(f"{esc(h['name'])} ({esc(h['site_id'])})", st["risk"]), t, Spacer(1, 3 * mm)]
     story += [KeepTogether([Paragraph("Status definitions", st["h2"]), defs[0]]), *defs[1:]]
     bullets = _bullets(doc.limitations, st)
     story += [KeepTogether([Paragraph("Limitations", st["h2"]), bullets[0]]), *bullets[1:]]

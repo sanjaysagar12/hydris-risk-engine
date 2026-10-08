@@ -87,8 +87,7 @@ def test_watch_sentences_and_future_not_crossing(ctxs):
     assert r.status == W
     assert e.threshold_position == ("At 20.9%, water stress is 0.9 points above the Watch line (20%) "
                                     "and 19.1 points below the High line (40%).")
-    assert e.what_would_change == ("It becomes Present if it reaches 40%. Under business as usual it is projected "
-                                   "to reach 36.6% by 2050, still below the High line.")
+    assert e.what_would_change == ("It becomes Present if it reaches 40%.")  # no crossing: nothing more
 
 
 def test_watch_future_crossing(ctxs):
@@ -101,7 +100,7 @@ def test_watch_future_crossing(ctxs):
 def test_watch_crossing_only_under_pessimistic_scenario(ctxs):
     r, e = run(ctxs, "bws", base=bws(0.209, 2, "x"), future=ws_future(
         0.209, bau={2030: 0.25, 2050: 0.3, 2080: 0.35}, pes={2030: 0.3, 2050: 0.39, 2080: 0.45}))
-    assert "still below the High line." in e.what_would_change
+    assert "business as usual" not in e.what_would_change
     assert e.what_would_change.endswith("Under the pessimistic scenario it is projected to cross the High line by 2080.")
 
 
@@ -112,8 +111,7 @@ def test_not_present_sentences_without_future_crossing(ctxs):
     assert r.status == N
     assert e.threshold_position == ("At 8.6%, water depletion is 16.4 points below the Watch line (25%) "
                                     "and 41.4 points below the High line (50%).")
-    assert e.what_would_change == ("It would move to Watch at 25%. Under business as usual it is projected to reach "
-                                   "17.1% by 2050, still below the Watch line.")
+    assert e.what_would_change == ("It would move to Watch at 25%.")
 
 
 @pytest.mark.parametrize("bau, expect", [
@@ -176,7 +174,7 @@ def test_gtd_insignificant_trend(ctxs):
     assert r.status == N and e.threshold_position is None
     assert e.what_would_change == ("This would change only if a statistically significant declining trend were found. "
                                    "Aqueduct's model covers 1990–2014; recent local well data (e.g. CGWB) may show a different picture.")
-    assert e.extra_notes == ["Not present here means no decline was detected in the model, not that groundwater is safe."]
+    assert e.extra_notes == []  # the reason already says it
 
 
 def test_cfr_no_risk(ctxs):
@@ -317,8 +315,7 @@ def test_one_below_the_top_still_has_both_sentences(ctxs):
 def test_optimistic_scenario_above_bau_is_not_skipped(ctxs):
     r, e = run(ctxs, "bws", base=bws(0.209, 2, "x"), future=ws_future(
         0.209, bau={2030: 0.25, 2050: 0.3, 2080: 0.35}, opt={2030: 0.3, 2050: 0.41, 2080: 0.5}))
-    assert e.what_would_change == ("It becomes Present if it reaches 40%. Under business as usual it is projected to reach 30.0% "
-                                   "by 2050, still below the High line. Under the optimistic scenario it is projected to cross "
+    assert e.what_would_change == ("It becomes Present if it reaches 40%. Under the optimistic scenario it is projected to cross "
                                    "the High line by 2050.")
 
 
@@ -335,6 +332,5 @@ def test_not_present_names_scenarios_reaching_watch_or_high(ctxs):
     r, e = run(ctxs, "bws", base=bws(0.05, 0, "Low (<10%)"), future=ws_future(
         0.05, bau={2030: 0.1, 2050: 0.15, 2080: 0.19}, opt={2030: 0.1, 2050: 0.2, 2080: 0.25}, pes={2030: 0.2, 2050: 0.45, 2080: 0.5}))
     assert e.what_would_change.endswith(
-        "Under business as usual it is projected to reach 15.0% by 2050, still below the Watch line. "
         "Under the optimistic scenario it is projected to reach the Watch line by 2050. "
         "Under the pessimistic scenario it is projected to cross the High line by 2050.")

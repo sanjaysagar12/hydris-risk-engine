@@ -96,7 +96,7 @@ def test_block_carries_engine_text_unchanged_plus_new_sentences(out):
     fr = build_report(out, RULES, "factory", ["inland"], NOW).factories[0]
     bws = next(b for b in fr.present if b.risk_id == "bws")
     r = next(r for r in out.results if r.site_id == "inland" and r.risk_id == "bws")
-    assert bws.why == r.reason and bws.caveats == r.caveats and bws.headline == r.headline
+    assert r.reason.startswith(bws.why) and bws.caveats == r.caveats and bws.headline == r.headline
     assert bws.threshold_position == "At 50.0%, water stress is 10.0 points above the High line (40%)."
     assert bws.what_would_change.startswith("It would drop to Watch below 40%.")
     assert bws.status_word == "Present" and bws.scale == "sub-basin" and bws.vintage == "4.0"
@@ -247,3 +247,33 @@ def test_limitations_single_source_in_sync_with_readme():
 def test_version_matches_pyproject():
     meta = tomllib.loads(Path(ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert meta["project"]["version"] == __version__
+
+
+# ---- one fact once per block; detail levels ---------------------------------------------------------------------
+def sentences(text):
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z])", text) if s.strip()]
+
+
+def test_no_sentence_appears_twice_in_a_block(out):
+    doc = build_report(out, RULES, "portfolio", None, NOW)
+    for fr in doc.factories:
+        for b in blocks(fr):
+            parts = [b.why, b.threshold_position, b.what_would_change, b.outlook_sentence, *b.extra_notes, *b.caveats]
+            found = [s for p in parts if p for s in sentences(p)]
+            assert len(found) == len(set(found)), (b.risk_id, [s for s in found if found.count(s) > 1])
+
+
+def test_why_has_no_trend_sentence_but_the_app_reason_keeps_it(out):
+    r = next(r for r in out.results if r.site_id == "inland" and r.risk_id == "bws")
+    fr = build_report(out, RULES, "factory", ["inland"], NOW).factories[0]
+    b = next(b for b in fr.present if b.risk_id == "bws")
+    assert "peaks in" in r.reason and "peaks in" not in b.why and "by 2050" not in b.why
+    assert b.outlook_sentence and b.why.endswith(".") and "  " not in b.why
+
+
+def test_detail_levels_and_overall_hides_raw(out):
+    fr = build_report(out, RULES, "factory", ["coast"], NOW).factories[0]
+    assert {b.detail for b in fr.present + fr.watch} <= {"full"}
+    assert {b.detail for b in fr.not_present + fr.no_data} <= {"compact"}
+    assert fr.overall.detail == "full" and fr.overall.values.raw is None and fr.overall.values.score is not None
+    assert all("raw" in r for r in fr.summary_rows) and next(r for r in fr.summary_rows if r["risk_id"] == "overall_textile")["raw"] == ""

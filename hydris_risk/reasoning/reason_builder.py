@@ -90,7 +90,10 @@ class ReasonBuilder:
             impact = case.get("impact", cfg[f"impact_{status.value}"]).format(**f)
         if cfg.get("kind") == "impact":
             headline = T["kind_prefix"] + headline
-        parts = [f"{f['status']}.", cfg["what_it_measures"], cfg.get("impact_note"), value, rule, impact, self._trend(f, drivers),
+        trend = self._trend(f, drivers)
+        if trend:
+            drivers["trend_sentence"] = trend  # lets the report show the reason without it (trend lives in its Outlook)
+        parts = [f"{f['status']}.", cfg["what_it_measures"], cfg.get("impact_note"), value, rule, impact, trend,
                  *drivers.get("sentences", [])]
         return headline, " ".join(p for p in parts if p)
 

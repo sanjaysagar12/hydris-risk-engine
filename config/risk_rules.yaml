@@ -56,8 +56,6 @@ report_templates:
   scenario: {bau: "business as usual", opt: "the optimistic scenario", pes: "the pessimistic scenario"}
   future_cross_present: "Under {scenario} {it} is projected to cross the {present_title} line by {year}."
   future_reach_watch: "Under {scenario} {it} is projected to reach the Watch line by {year}."
-  future_below_present: "Under {scenario} {it} is projected to reach {value} by {year}, still below the {present_title} line."
-  future_below_watch: "Under {scenario} {it} is projected to reach {value} by {year}, still below the Watch line."
   outlook_up: "Under business as usual {name} rises from {base} today to {v30} by 2030, {v50} by 2050 and {v80} by 2080."
   outlook_down: "Under business as usual {name} falls from {base} today to {v30} by 2030, {v50} by 2050 and {v80} by 2080."
   outlook_flat: "Under business as usual {name} changes little, from {base} today to {v80} by 2080."
@@ -69,7 +67,6 @@ report_templates:
   position_no_risk: "Aqueduct records no coastal flood risk for this basin; there is no threshold to compare against."
   position_arid: "Aqueduct does not calculate a reliable ratio for very dry, low-use basins, so position against thresholds is not meaningful."
   change_gtd_insignificant: "This would change only if a statistically significant declining trend were found. Aqueduct's model covers 1990–2014; recent local well data (e.g. CGWB) may show a different picture."
-  note_gtd_insignificant: "Not present here means no decline was detected in the model, not that groundwater is safe."
   note_low_collection: "The indicator cannot measure pollution from uncollected sewage, so Watch reflects missing sewer collection, not low pollution."
   note_country_scale: "This value is the same for every site in {country}, so it does not distinguish this factory from others in the country."
   note_no_data_area: "Aqueduct has no value for this indicator in this area, so no status can be given. This is a data gap, not evidence of low risk."

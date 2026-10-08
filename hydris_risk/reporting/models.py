@@ -18,6 +18,7 @@ class RiskBlock(BaseModel):
     vintage: str
     status: RiskStatus
     status_word: str
+    detail: Literal["full", "compact"] = "full"   # compact: title, why, position, change, notes, caveats only
     headline: str
     why: str                          # the engine's reason, unchanged
     threshold_position: str | None = None

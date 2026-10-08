@@ -107,7 +107,6 @@ def explain(result: RiskResult, rules: RiskRules, country: str | None = None) ->
     position = change = None
     if case == "insignificant":
         change = T["change_gtd_insignificant"]
-        notes.insert(0, T["note_gtd_insignificant"])
     elif case == "no_risk":
         position = T["position_no_risk"]
     elif case == "arid":
@@ -164,8 +163,8 @@ def _generic(result: RiskResult, rules: RiskRules, cfg: dict[str, Any], T: dict[
 
 def _future_sentences(future: list[FutureValue], status: RiskStatus, watch: float, present: float,
                       cfg: dict[str, Any], T: dict[str, Any], fields: dict[str, Any]) -> str | None:
-    """Business as usual always gets a sentence (crossing, or 'still below'). Every other scenario that crosses a line that
-    matters is added and named: Aqueduct's optimistic scenario can sit above business as usual."""
+    """One sentence per scenario that crosses a line that matters, each named: Aqueduct's optimistic scenario can sit above
+    business as usual. Scenarios that stay below say nothing (the Outlook shows their values)."""
     # a Watch site only cares about reaching Present; a Not-present site about reaching Watch or Present
     matters = (lambda lv: lv == "present") if status == RiskStatus.WATCH else (lambda lv: lv is not None)
     out = []
@@ -177,10 +176,6 @@ def _future_sentences(future: list[FutureValue], status: RiskStatus, watch: floa
         if matters(level):
             key = "future_cross_present" if level == "present" else "future_reach_watch"
             out.append(T[key].format(**fields, scenario=T["scenario"][sc], year=year))
-        elif sc == "bau":
-            ref = next((f for f in values if f.year == 2050), values[-1])
-            key = "future_below_present" if status == RiskStatus.WATCH else "future_below_watch"
-            out.append(T[key].format(**{**fields, "scenario": T["scenario"][sc], "year": ref.year, "value": _val(ref.raw, cfg)}))
     return " ".join(out) or None
 
 

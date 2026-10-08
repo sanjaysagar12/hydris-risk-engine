@@ -50,8 +50,10 @@ def test_pdf_has_a_block_for_every_risk_and_explanation_parts(synthetic_out):
     assert text.count("WHY THIS STATUS") == 14  # exactly one block per result
     assert "WHERE IT SITS AGAINST THE THRESHOLDS" in text and "WHAT WOULD CHANGE THE STATUS" in text
     assert "SEASONAL PATTERN" in text and "OUTLOOK" in text and "OVERALL BREAKDOWN" in text and "CAVEATS" in text
+    assert text.count("SEASONAL PATTERN") == 1 and text.count("VALUES") == 2  # only the Present bws and the overall block are full
+    assert "All values" in text
     assert "At 50.0%, water stress is 10.0 points above the High line (40%)." in text
-    assert "Not present here means no decline was detected in the model, not that groundwater is safe." in text
+    assert "This means no decline was detected in the model, not that groundwater here is safe." in text
     assert "Aqueduct's model covers 1990–2014" in text  # en dash inside a number range
 
 

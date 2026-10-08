@@ -85,14 +85,19 @@ def build_report(out: EngineOutput, rules: RiskRules, report_type: str, site_ids
 # ---- one factory -------------------------------------------------------------------------------------------
 def _block(r: RiskResult, rules: RiskRules, ctx: BasinContext) -> RiskBlock:
     e = explain(r, rules, ctx.name_0)
+    trend = r.drivers.get("trend_sentence")
+    why = r.reason.replace(trend, "").replace("  ", " ").strip() if trend else r.reason  # trend lives in Outlook
+    composite = r.risk_id == OVERALL
+    values = r.values.model_copy(update={"raw": None}) if composite else r.values  # composite raw is pre-remapping: score only
     return RiskBlock(
         risk_id=r.risk_id, risk_name=r.risk_name, group=r.group,
         kind="composite" if r.risk_id == OVERALL else r.kind, scale=r.scale or "", vintage=r.indicator_vintage,
-        status=r.status, status_word=rules.templates["status_word"][r.status.value], headline=r.headline, why=r.reason,
+        status=r.status, status_word=rules.templates["status_word"][r.status.value], headline=r.headline, why=why,
+        detail="full" if composite or r.status in (RiskStatus.PRESENT, RiskStatus.WATCH) else "compact",
         threshold_position=e.threshold_position, what_would_change=e.what_would_change, extra_notes=e.extra_notes,
         outlook_rows=[f for f in r.future if f.raw is not None], outlook_table=_outlook_table(r, rules), outlook_sentence=outlook_sentence(r, rules),
         monthly_chart_png=monthly_chart_png(r.monthly, rules.for_risk(r.risk_id), f"{r.risk_name}: monthly") if r.monthly else None,
-        values=r.values, source=r.source, pfaf_id=r.pfaf_id, string_id=r.string_id, caveats=r.caveats,
+        values=values, source=r.source, pfaf_id=r.pfaf_id, string_id=r.string_id, caveats=r.caveats,
     )
 
 
@@ -157,6 +162,9 @@ def _factory(ctx: BasinContext, results: list[RiskResult], summ: FactorySummary,
     summary_rows = [{
         "risk_id": b.risk_id, "risk": b.risk_name, "group": b.group, "scale": b.scale, "status": b.status.value,
         "status_word": b.status_word, "kind": b.kind, "value": b.values.raw_display or "", "label": b.values.label or "",
+        "raw": f"{b.values.raw:.6g}" if b.values.raw is not None else "", "unit": b.values.unit or "",
+        "score": f"{b.values.score:.2f}" if b.values.score is not None else "",
+        "category": str(b.values.category) if b.values.category is not None else "", "vintage": b.vintage,
     } for b in blocks.values()]
     T = rules.report_templates
     ov = next(r for r in results if r.risk_id == OVERALL)
