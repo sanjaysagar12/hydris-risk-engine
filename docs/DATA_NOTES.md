@@ -47,6 +47,40 @@ NoData coverage: cfr NoData is the same 5,161 polygons as rfr NoData, and cep ha
 - **`rfr` / `cfr`: the share of the population expected to be affected by flooding in an average year.** A label such as "1 in 1,000" means 0.1% of people. It is not an annual probability or a return period, and reasons never say "1-in-100-year flood". Values are shown as a percentage and as "about 1.5 in every 1,000 people".
 - Rounding never contradicts the label: when the rounded number would fall in a different category than the true value, decimals are added (0.2487 shows as 0.249, not 0.25, next to "Low (<0.25)").
 
+## 5b. Category edges are measured, not read from the labels
+The label strings round the real category edges, so thresholds copied from labels misclassified rows. Checked on all valid rows of `baseline_annual` (raw value vs published category):
+
+| Indicator | Label says | Rows misclassified by label edges |
+|---|---|---|
+| rfr | 1, 2, 6 in 1,000 and 1 in 100 (0.1%, 0.2%, 0.6%, 1%) | 18.7% |
+| cfr | 9e-6, 7e-5, 3e-4, 2e-3 | 3.1% |
+| sev | 0.33, 0.66, 1.00, 1.33 | 1.1% |
+| ucw | 30, 60, 90, 100% | 0.3% |
+
+**How an edge is found.** For each boundary between category k-1 and k, take the largest raw value in the lower category (`max_lo`) and the smallest in the upper category (`min_hi`). Any number in `(max_lo, min_hi]` reproduces the published categories for every row. The gap is often tiny (rfr edge 1 spans 0.0011812 to 0.0011819), so the edge must be chosen inside it. The rule used:
+1. Use the label's own round number if it already lies inside the gap (all of `bws, bwd, iav, gtd, drr, cep, udw, usa, rri, overall`, and ucw edges 1-3).
+2. Otherwise use an exact fraction if one lies inside the gap (sev: 1/3, 2/3, 1, 4/3, which Aqueduct evidently computes before rounding the labels).
+3. Otherwise use the midpoint of the gap, rounded to the fewest significant digits that stays inside the gap (rfr, cfr, ucw edge 4).
+
+| Edge | Indicator | `max_lo` | `min_hi` | Midpoint | Used | Rule |
+|---|---|---|---|---|---|---|
+| 1 | rfr | 0.0011811763 | 0.001181857 | 0.0011815166 | 0.0011815 | 3 |
+| 2 | rfr | 0.002986597 | 0.0029867171 | 0.002986657 | 0.0029867 | 3 |
+| 3 | rfr | 0.0061609381 | 0.0061620651 | 0.0061615016 | 0.006161 | 3 |
+| 4 | rfr | 0.013605541 | 0.01361206 | 0.0136088 | 0.013609 | 3 |
+| 1 | cfr | 9.6282841e-06 | 9.6899312e-06 | 9.6591076e-06 | 9.65e-06 | 3 |
+| 2 | cfr | 7.1382522e-05 | 7.1524393e-05 | 7.1453458e-05 | 7.145e-05 | 3 |
+| 3 | cfr | 0.00035607188 | 0.0003601991 | 0.00035813549 | 0.000358 | 3 |
+| 4 | cfr | 0.0021478185 | 0.0021582301 | 0.0021530243 | 0.002153 | 3 |
+| 1 | sev | 0.33329614 | 0.33339222 | 0.33334418 | 1/3 | 2 |
+| 2 | sev | 0.66633938 | 0.66694666 | 0.66664302 | 2/3 | 2 |
+| 3 | sev | 0.99992851 | 1.0004901 | 1.0002093 | 1 | 2 |
+| 4 | sev | 1.3331497 | 1.3339298 | 1.3335398 | 4/3 | 2 |
+| 1-3 | ucw | 0.2946, 0.59, 0.8763 | 0.3, 0.6, 0.9019 | | 0.3, 0.6, 0.9 | 1 |
+| 4 | ucw | 0.999412 | 0.999834 | 0.999623 | 0.9996 | 3 |
+
+`thresholds` in `config/risk_rules.yaml` hold these edges, and `tests/test_rule_thresholds.py` asserts they reproduce the published category for every row (0 mismatches over all 14 risks). Report text shows rounded lines (e.g. rfr Watch line "0.3%", where the label says 0.2%).
+
 ## 6. Geographic scale of each indicator
 Measured as the share of groups in which the indicator takes a single value:
 

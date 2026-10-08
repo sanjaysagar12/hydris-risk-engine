@@ -104,6 +104,7 @@ Each service depends only on a `BasinContext` and its own config block, and `get
 
 ## Limitations
 
+<!-- limitations:start (generated from docs/limitations.md; edit that file) -->
 - **Basin-level screening, not a site assessment.** Values describe the Aqueduct polygon the factory falls in. They do not reflect the factory's own water sources, abstraction, storage, discharge, or local conditions. Points are matched by polygon (or snapped up to 5 km); coordinates near polygon boundaries can land in a neighbouring polygon.
 - **Older indicator vintages.** Only bws, bwd, iav and sev (and the overall composite) are Aqueduct 4.0 indicators. Groundwater table decline, riverine and coastal flood, drought risk, untreated wastewater, coastal eutrophication, drinking water, sanitation and the RepRisk index come from Aqueduct 3.0 and were not updated. Each result says which vintage it is, and the groundwater data describes 1990-2014.
 - **Indicators have different geographic scales** (measured, see `docs/DATA_NOTES.md`): most are sub-basin; groundwater table decline is aquifer-level; untreated wastewater and the RepRisk index are country-level; the overall score is a composite. Every card shows its scale. Drinking-water and sanitation values vary by sub-basin but are estimates, not local measurements.
@@ -115,6 +116,7 @@ Each service depends only on a `BasinContext` and its own config block, and `get
 - **The overall textile score** is a composite, not validated by WRI, and Aqueduct remaps it onto 0-5, so it is not an average of the group scores. Use it for prioritisation, not as a measured value. When some indicators have no data, a caveat gives the share of the weighting that is missing.
 - **Arid basins:** Aqueduct does not calculate a reliable stress or depletion ratio for very dry, low-use basins. Hydris marks them Present because any new withdrawal can quickly raise stress.
 - **Thresholds are Hydris's own rule** (Present from High, Watch from Medium-High) applied to Aqueduct's categories. They are screening cut-offs, not regulatory limits. The unit of coastal eutrophication ("ICEP index") is not confirmed (`unit_verified: false`).
+<!-- limitations:end -->
 
 ## Citation
 

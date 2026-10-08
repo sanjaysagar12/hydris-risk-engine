@@ -55,8 +55,9 @@ def _num_text(v: float, d: int, cfg: dict[str, Any], scale: float = 1.0) -> str:
     return text
 
 
-def fmt_value(raw: float | None, cfg: dict[str, Any]) -> str | None:
-    """Raw value with unit. Ratios shown as %; gtd gets a direction in words per `decline_sign`."""
+def fmt_value(raw: float | None, cfg: dict[str, Any], keep_decimals: bool = False) -> str | None:
+    """Raw value with unit. Ratios shown as %; gtd gets a direction in words per `decline_sign`.
+    keep_decimals: keep '21.0%' instead of trimming whole percentages to '21%'."""
     if raw is None:
         return None
     d = _decimals(cfg)
@@ -65,7 +66,7 @@ def fmt_value(raw: float | None, cfg: dict[str, Any]) -> str | None:
         if cfg.get("sig") and v:  # small shares (flood): keep `sig` significant figures
             d = max(d, cfg["sig"] - 1 - math.floor(math.log10(abs(v))))
         text = _num_text(v, d, cfg, 100)
-        if "." in text and float(text) == int(float(text)):
+        if not keep_decimals and "." in text and float(text) == int(float(text)):
             text = str(int(float(text)))  # whole percentages without ".0"
         return f"{text}%"
     if cfg.get("display") == "score":

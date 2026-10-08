@@ -76,7 +76,8 @@ class RiskService(ABC):
             headline, reason = self.builder.build(status, values, monthly, future, drivers, ctx)
             return self._result(ctx, status, headline, reason, values, monthly, future, drivers, caveats)
         except Exception as e:  # one failing service must not stop the others
-            return self._result(ctx, RiskStatus.ERROR, *self.builder.error(f"{type(e).__name__}: {e}"), IndicatorValues())
+            msg = f"{type(e).__name__}: {e}"
+            return self._result(ctx, RiskStatus.ERROR, *self.builder.error(msg), IndicatorValues(), drivers={"error_message": msg})
 
     def _result(self, ctx, status, headline, reason, values, monthly=(), future=(), drivers=None, caveats=()):
         return RiskResult(
