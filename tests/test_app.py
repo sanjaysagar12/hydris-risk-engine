@@ -77,3 +77,13 @@ def test_new_upload_resets_the_selection(have_data):
     at.sidebar.file_uploader[0].set_value([("f.csv", CSV, "text/csv")]).run()
     assert not at.exception
     assert at.selectbox[0].value == "F001" and len(at.selectbox[0].options) == 2
+
+
+def test_report_download_buttons_exist(have_data):
+    at = AppTest.from_file(str(APP), default_timeout=180).run()
+    labels = [b.label for b in at.get("download_button")]
+    for want in ("Download factory report (PDF)", "Download factory report (HTML)",
+                 "Download portfolio report (PDF)", "Download portfolio report (HTML)"):
+        assert want in labels, labels
+    assert not at.exception
+    assert any("all 14 results" in c.value for c in at.caption)

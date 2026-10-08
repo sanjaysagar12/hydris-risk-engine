@@ -27,6 +27,7 @@ The first run reads the GDB once (about 20 seconds) and writes a slim cache to `
 python -m hydris_risk.cli inspect     [--data data/raw/.../X.gdb]          # layers, columns, labels, NoData report -> data/cache/inspection_report.md
 python -m hydris_risk.cli build-cache [--data ...] [--cache-dir ...]       # build the cache without running anything
 python -m hydris_risk.cli run --input sample/factories.csv --out outputs/ [--risks bws,gtd] [--data ...] [--cache-dir ...]
+python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --format pdf|html|both --type factory|portfolio [--site-id F001]
 ```
 
 `run` prints bad input rows (they are skipped, the rest still run), a per-factory summary, and any service errors. It exits with code 1 if no valid row remains and 2 for an unknown risk id or missing data.
@@ -48,7 +49,35 @@ streamlit run app/streamlit_app.py
 - **Sidebar:** upload a factories CSV or use the sample, see input validation messages, filter by status, group and "at least one present risk", download the three result files.
 - **All factories:** KPIs, a map coloured by number of Present risks, and a table (# present, # watch, present risk names, overall textile score). Click a row or use the selectbox.
 - **Selected factory:** location and match details, the overall textile card (score, group breakdown, top 3 drivers), a risk summary table, then one card per risk grouped as Physical: quantity, Physical: quality, Regulatory & reputational, ordered Present, Watch, Not present, No data, Error. Each card has a status badge (word, not just colour), a scale tag, the headline, "Why", "Values", monthly and future charts where the data has them, and caveats. Downstream-impact indicators sit in their own section.
+- **Reports:** "Download factory report" (PDF or HTML) under the factory header, and "Download portfolio report" in the sidebar. Reports always contain all 14 results; the filters affect only the screen. Rendered files are cached per upload.
 - **KPIs and counts** cover risks only. The overall score and downstream-impact indicators are not counted, and "Most common local risk" counts sub-basin and aquifer risks only.
+
+## Reports
+
+Two report types, two formats, one content model:
+
+| | PDF (A4, share with management and buyers) | HTML (one self-contained file, printable) |
+|---|---|---|
+| **Factory report** | one factory | one factory |
+| **Portfolio report** | summary and status matrix, then every factory | same |
+
+```bash
+python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --format both --type factory      # one file per factory
+python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --type portfolio --format pdf
+python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --site-id F001 --format html
+```
+
+`--format` is `pdf`, `html` or `both`; `--type factory` without `--site-id` writes one file per factory; an unknown `--site-id` exits with code 2. Files are named `hydris_risk_report_{site_id}_{YYYYMMDD}.pdf|html` and `hydris_risk_report_portfolio_{YYYYMMDD}.pdf|html`. The same buttons exist in the app.
+
+**What a factory section contains, in order:** header (ids, coordinates, basin, match method and warnings), at a glance (counts and a templated summary), risk summary table for all 14 results, the overall textile block (score, group chart, top indicators), then one block per risk grouped as Risks present, Risks on watch, Risks not present, No data or errors, and Downstream impact. Every result appears exactly once. The appendix has the methodology table (Watch and Present line per indicator), an "All values" table per factory, status definitions, the Limitations (single source: `docs/limitations.md`, also embedded in this README) and the data citation.
+
+**Each risk block** has the engine's reason ("Why this status"), where the value sits against the Watch and Present lines, what would change the status (including any scenario that crosses a line), an outlook with business-as-usual, optimistic and pessimistic values, a seasonal chart (water stress, depletion, interannual variability), values, and caveats. Present and Watch blocks are full; Not-present, No-data and Error blocks are compact. Each fact appears once per block: the reason in the report leaves out its trend sentence, which lives in the Outlook (the app keeps the full reason). Special cases use their own wording: groundwater "Insignificant Trend", coastal "No Risk", arid basins, low sewer collection, country-scale values and missing data. Not-present sections state once that "not present" is a screening result and not a site-level all-clear.
+
+All sentences are deterministic: generated from the results and templates in `config/risk_rules.yaml` (`report_templates`), with no LLM. The Watch and Present lines are measured from the data because Aqueduct's labels round the category edges (see `docs/DATA_NOTES.md`, section 5b).
+
+PDF text uses an embedded DejaVu Sans (licence in `hydris_risk/reporting/assets/fonts/`), so en dashes and symbols render on any machine. Charts are drawn with matplotlib (no browser needed). A 6-factory portfolio renders in a few seconds (about 55 pages). Reports are deterministic for a given time stamp: the builder takes `generated_at` as an argument.
+
+Code: `hydris_risk/reporting/` (`explain.py` sentences, `builder.py` -> `ReportDocument`, `charts.py`, `render_pdf.py`, `render_html.py`, `export.py`).
 
 ## Tests
 
@@ -67,7 +96,7 @@ python -m playwright install chromium
 pytest -m e2e
 ```
 
-They start their own Streamlit server on a free port (log: `outputs/e2e_streamlit.log`) and check that the app loads without exceptions, all 14 cards render for Tiruppur, scale tags, badges and card order, table-row and selectbox selection, upload validation, and the footer. They need the real GDB and skip if Chromium is not installed.
+They start their own Streamlit server on a free port (log: `outputs/e2e_streamlit.log`) and check that the app loads without exceptions, all 14 cards render for Tiruppur, scale tags, badges and card order, table-row and selectbox selection, upload validation, download of a factory PDF (starts with %PDF) and HTML and of a portfolio PDF, and the footer. They need the real GDB and skip if Chromium is not installed.
 
 ## Output files
 
@@ -89,9 +118,10 @@ A risk is **Present** from category High (3, or 4 for drought risk, which has it
 
 ```
 config/            settings.yaml (paths, tolerance), risk_rules.yaml (thresholds, units, scale, all text)
-hydris_risk/       models, config, data/ (repository, NoData, inspect_gdb), geo/locator, reasoning/, services/, engine, io/, cli
+hydris_risk/       models, config, data/ (repository, NoData, inspect_gdb), geo/locator, reasoning/, services/, reporting/, engine, io/, cli
 app/               Streamlit app and components
 tests/             unit tests, tests/e2e (browser)
+docs/limitations.md  Limitations text, shared by this README and the reports
 docs/DATA_NOTES.md where the real data differs from SPEC.md, and every measurement the code relies on
 sample/            sample factories
 ```

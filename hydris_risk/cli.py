@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -11,6 +12,7 @@ from hydris_risk.data.inspect_gdb import inspect_gdb
 from hydris_risk.engine import RiskEngine
 from hydris_risk.io.input_loader import load_factories
 from hydris_risk.io.output_writer import write_all
+from hydris_risk.reporting.export import FORMATS, render_report
 
 app = typer.Typer(add_completion=False, help="Hydris water-risk engine (WRI Aqueduct 4.0).")
 Data = Annotated[Path | None, typer.Option(help="Path to the Aqueduct .gdb (default: first .gdb under data/raw).")]
@@ -74,6 +76,41 @@ def run_cmd(
     for e in result.errors:
         typer.echo(f"  service error: {e}", err=True)
     typer.echo("Wrote " + ", ".join(str(p) for p in paths.values()))
+
+
+@app.command("report")
+def report_cmd(
+    input: Annotated[Path, typer.Option(help="Factories CSV.")],  # noqa: A002
+    out: Annotated[Path, typer.Option(help="Output folder.")] = Path("outputs"),
+    format: Annotated[str, typer.Option(help="pdf, html or both.")] = "both",  # noqa: A002
+    type: Annotated[str, typer.Option(help="factory (one file per factory unless --site-id) or portfolio.")] = "factory",  # noqa: A002
+    site_id: Annotated[str | None, typer.Option(help="Only this factory (factory reports).")] = None,
+    data: Data = None,
+    cache_dir: CacheDir = None,
+) -> None:
+    """Write exportable PDF/HTML reports with all 14 results per factory."""
+    if format not in (*FORMATS, "both") or type not in ("factory", "portfolio"):
+        typer.echo("--format must be pdf, html or both; --type must be factory or portfolio.", err=True)
+        raise typer.Exit(2)
+    factories, issues = load_factories(input)
+    for i in issues:
+        typer.echo(str(i), err=True)
+    if not factories:
+        typer.echo("No valid factories to assess.", err=True)
+        raise typer.Exit(1)
+    if site_id and site_id not in {f.site_id for f in factories}:
+        typer.echo(f"Unknown site_id {site_id!r}. Available: {', '.join(f.site_id for f in factories)}", err=True)
+        raise typer.Exit(2)
+    rules = load_rules()
+    result = RiskEngine(_repo(data, cache_dir), rules).run(factories)
+    now = datetime.now()  # the only clock read: builders take the time as an argument
+    targets = [None] if type == "portfolio" else [site_id] if site_id else [f.site_id for f in factories]
+    out.mkdir(parents=True, exist_ok=True)
+    for target in targets:
+        for fmt in FORMATS if format == "both" else (format,):
+            name, payload = render_report(result, rules, type, target, fmt, now)
+            (out / name).write_bytes(payload)
+            typer.echo(f"Wrote {out / name}")
 
 
 if __name__ == "__main__":

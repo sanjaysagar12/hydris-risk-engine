@@ -133,6 +133,29 @@ def test_table_row_click_then_selectbox(page):
     assert no_exception(page)
 
 
+def test_factory_report_downloads(page):
+    """Selected factory is F002 after the previous test: click the PDF and HTML buttons and check the files."""
+    with page.expect_download(timeout=120_000) as dl:
+        page.get_by_role("button", name=re.compile("Download factory report \(PDF\)")).click()
+    d = dl.value
+    path = d.path()
+    data = open(path, "rb").read()
+    assert d.suggested_filename.startswith("hydris_risk_report_F002_") and d.suggested_filename.endswith(".pdf")
+    assert data.startswith(b"%PDF") and len(data) > 50_000
+    with page.expect_download(timeout=120_000) as dl:
+        page.get_by_role("button", name=re.compile("Download factory report \(HTML\)")).click()
+    html = open(dl.value.path(), encoding="utf-8").read()
+    assert dl.value.suggested_filename.endswith(".html") and "Surat Dyeing Unit" in html and html.count("Why this status") == 14
+    assert no_exception(page)
+
+
+def test_portfolio_report_downloads(page):
+    with page.expect_download(timeout=180_000) as dl:
+        page.get_by_role("button", name=re.compile("Download portfolio report \(PDF\)")).click()
+    assert dl.value.suggested_filename.startswith("hydris_risk_report_portfolio_")
+    assert open(dl.value.path(), "rb").read().startswith(b"%PDF")
+
+
 def test_upload_reports_bad_row_and_country_mismatch(page, tmp_path):
     csv = tmp_path / "bad.csv"
     csv.write_text(BAD_CSV, encoding="utf-8")
