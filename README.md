@@ -1,6 +1,6 @@
 # Hydris risk engine
 
-Screens factories (lat/lon) for **13 water risks plus one overall textile score** using WRI Aqueduct 4.0 data. Every risk is a separate service behind one interface. Each result has a status (Present, Watch, Not present, No data), a plain-language reason built from templates and data (no LLM, no paid APIs), the underlying values, and caveats. A Streamlit app lists all factories and shows every risk for the selected one.
+Screens factories (lat/lon) for **13 water risks plus one overall textile score** using WRI Aqueduct 4.0 data. Every risk is a separate service behind one interface. Each result has a status (Present, Watch, Not present, No data), a plain-language reason built from templates and data (no LLM, no paid APIs), the underlying values, and caveats. A Streamlit app lists all factories and shows every risk for the selected one, and PDF/HTML reports explain why each risk is or is not present. The code is split into a risk engine, a report engine, a CLI and a web app: see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 > Basin-level screening data. Not a substitute for site-level assessment. See [Limitations](#limitations).
 
@@ -10,7 +10,8 @@ Python 3.11 or newer (developed on 3.13).
 
 ```bash
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"                                 # runtime + pytest + ruff, versions pinned in pyproject.toml
+pip install -e ".[all,dev]"                             # everything + pytest + ruff, versions pinned in pyproject.toml
+# smaller installs: pip install -e .  (risk engine only)  |  ".[report]"  |  ".[cli]"  |  ".[web]"
 ```
 
 ### Where to put the Aqueduct data
@@ -24,11 +25,13 @@ The first run reads the GDB once (about 20 seconds) and writes a slim cache to `
 ## Command line
 
 ```bash
-python -m hydris_risk.cli inspect     [--data data/raw/.../X.gdb]          # layers, columns, labels, NoData report -> data/cache/inspection_report.md
-python -m hydris_risk.cli build-cache [--data ...] [--cache-dir ...]       # build the cache without running anything
-python -m hydris_risk.cli run --input sample/factories.csv --out outputs/ [--risks bws,gtd] [--data ...] [--cache-dir ...]
-python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --format pdf|html|both --type factory|portfolio [--site-id F001]
+python -m hydris_cli inspect     [--data data/raw/.../X.gdb]          # layers, columns, labels, NoData report -> data/cache/inspection_report.md
+python -m hydris_cli build-cache [--data ...] [--cache-dir ...]       # build the cache without running anything
+python -m hydris_cli run --input sample/factories.csv --out outputs/ [--risks bws,gtd] [--data ...] [--cache-dir ...]
+python -m hydris_cli report --input sample/factories.csv --out outputs/ --format pdf|html|both --type factory|portfolio [--site-id F001]
 ```
+
+(After `pip install`, `hydris <command>` is the same as `python -m hydris_cli <command>`.)
 
 `run` prints bad input rows (they are skipped, the rest still run), a per-factory summary, and any service errors. It exits with code 1 if no valid row remains and 2 for an unknown risk id or missing data.
 
@@ -43,7 +46,7 @@ A point outside every polygon is snapped to the nearest one within 5 km (`neares
 ## The app
 
 ```bash
-streamlit run app/streamlit_app.py
+streamlit run web/streamlit_app.py
 ```
 
 - **Sidebar:** upload a factories CSV or use the sample, see input validation messages, filter by status, group and "at least one present risk", download the three result files.
@@ -62,9 +65,9 @@ Two report types, two formats, one content model:
 | **Portfolio report** | summary and status matrix, then every factory | same |
 
 ```bash
-python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --format both --type factory      # one file per factory
-python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --type portfolio --format pdf
-python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --site-id F001 --format html
+python -m hydris_cli report --input sample/factories.csv --out outputs/ --format both --type factory      # one file per factory
+python -m hydris_cli report --input sample/factories.csv --out outputs/ --type portfolio --format pdf
+python -m hydris_cli report --input sample/factories.csv --out outputs/ --site-id F001 --format html
 ```
 
 `--format` is `pdf`, `html` or `both`; `--type factory` without `--site-id` writes one file per factory; an unknown `--site-id` exits with code 2. Files are named `hydris_risk_report_{site_id}_{YYYYMMDD}.pdf|html` and `hydris_risk_report_portfolio_{YYYYMMDD}.pdf|html`. The same buttons exist in the app.
@@ -73,11 +76,11 @@ python -m hydris_risk.cli report --input sample/factories.csv --out outputs/ --s
 
 **Each risk block** has the engine's reason ("Why this status"), where the value sits against the Watch and Present lines, what would change the status (including any scenario that crosses a line), an outlook with business-as-usual, optimistic and pessimistic values, a seasonal chart (water stress, depletion, interannual variability), values, and caveats. Present and Watch blocks are full; Not-present, No-data and Error blocks are compact. Each fact appears once per block: the reason in the report leaves out its trend sentence, which lives in the Outlook (the app keeps the full reason). Special cases use their own wording: groundwater "Insignificant Trend", coastal "No Risk", arid basins, low sewer collection, country-scale values and missing data. Not-present sections state once that "not present" is a screening result and not a site-level all-clear.
 
-All sentences are deterministic: generated from the results and templates in `config/risk_rules.yaml` (`report_templates`), with no LLM. The Watch and Present lines are measured from the data because Aqueduct's labels round the category edges (see `docs/DATA_NOTES.md`, section 5b).
+All sentences are deterministic: generated from the results and templates in `config/report_templates.yaml`, with no LLM. The Watch and Present lines are measured from the data because Aqueduct's labels round the category edges (see `docs/DATA_NOTES.md`, section 5b).
 
-PDF text uses an embedded DejaVu Sans (licence in `hydris_risk/reporting/assets/fonts/`), so en dashes and symbols render on any machine. Charts are drawn with matplotlib (no browser needed). A 6-factory portfolio renders in a few seconds (about 55 pages). Reports are deterministic for a given time stamp: the builder takes `generated_at` as an argument.
+PDF text uses an embedded DejaVu Sans (licence in `hydris_report/assets/fonts/`), so en dashes and symbols render on any machine. Charts are drawn with matplotlib (no browser needed). A 6-factory portfolio renders in a few seconds (about 55 pages). Reports are deterministic for a given time stamp: the builder takes `generated_at` as an argument.
 
-Code: `hydris_risk/reporting/` (`explain.py` sentences, `builder.py` -> `ReportDocument`, `charts.py`, `render_pdf.py`, `render_html.py`, `export.py`).
+Code: `hydris_report/` (`explain.py` sentences, `builder.py` -> `ReportDocument`, `charts.py`, `render_pdf.py`, `render_html.py`, `export.py`).
 
 ## Tests
 
@@ -116,14 +119,17 @@ A risk is **Present** from category High (3, or 4 for drought risk, which has it
 
 ## Project layout
 
+Four packages, one-way dependencies (details and diagrams in [ARCHITECTURE.md](ARCHITECTURE.md)):
+
 ```
-config/            settings.yaml (paths, tolerance), risk_rules.yaml (thresholds, units, scale, all text)
-hydris_risk/       models, config, data/ (repository, NoData, inspect_gdb), geo/locator, reasoning/, services/, reporting/, engine, io/, cli
-app/               Streamlit app and components
-tests/             unit tests, tests/e2e (browser)
-docs/limitations.md  Limitations text, shared by this README and the reports
-docs/DATA_NOTES.md where the real data differs from SPEC.md, and every measurement the code relies on
-sample/            sample factories
+hydris_risk/     risk engine: CSV -> basin lookup -> 14 risk services -> EngineOutput (no UI, no reports)
+hydris_report/   report engine: EngineOutput -> ReportDocument -> PDF / HTML
+hydris_cli/      command line (inspect, build-cache, run, report)
+web/             Streamlit app and components
+config/          settings.yaml, risk_rules.yaml (engine), report_templates.yaml (report wording)
+docs/            DATA_NOTES.md (real data vs SPEC), limitations.md (shared by README and reports)
+tests/           risk/  report/  cli/  web/ (+ web/e2e)  test_architecture.py  conftest.py
+sample/          sample factories
 ```
 
 ### Adding a risk, and API readiness
