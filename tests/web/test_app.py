@@ -7,7 +7,7 @@ from streamlit.testing.v1 import AppTest
 
 from hydris_risk.config import load_settings
 
-APP = Path(__file__).resolve().parents[1] / "app" / "streamlit_app.py"
+APP = Path(__file__).resolve().parents[2] / "web" / "streamlit_app.py"
 
 # Tiruppur has present risks. Wellington (NZ) has none: 0 present, 0 watch in the real data.
 CSV = (b"site_id,site_name,lat,lon,country\n"

@@ -6,13 +6,14 @@ from collections import Counter
 from datetime import datetime
 
 from hydris_risk import __version__
-from hydris_risk.config import ROOT, RiskRules
+from hydris_risk.config import ROOT
+from hydris_report.config import ReportRules
 from hydris_risk.engine import OVERALL, EngineOutput, FactorySummary
 from hydris_risk.models import BasinContext, MatchMethod, RiskResult, RiskStatus
 from hydris_risk.reasoning import formatters as F
-from hydris_risk.reporting.charts import monthly_chart_png, overall_chart_png
-from hydris_risk.reporting.explain import explain, fmt_line, outlook_sentence
-from hydris_risk.reporting.models import FactoryReport, PortfolioSummary, ReportDocument, RiskBlock
+from hydris_report.charts import monthly_chart_png, overall_chart_png
+from hydris_report.explain import explain, fmt_line, outlook_sentence
+from hydris_report.models import FactoryReport, PortfolioSummary, ReportDocument, RiskBlock
 
 LIMITATIONS_FILE = ROOT / "docs" / "limitations.md"
 LOCAL_SCALES = {"sub-basin", "aquifer"}  # country-level and composite values say nothing local
@@ -22,7 +23,7 @@ STATUS_SECTIONS = {
 }
 
 
-def most_common_local(summary: list[FactorySummary], rules: RiskRules) -> tuple[str, int] | None:
+def most_common_local(summary: list[FactorySummary], rules: ReportRules) -> tuple[str, int] | None:
     """(risk_id, number of sites) of the local risk most often Present; same rule as the app's KPI."""
     counts = Counter(r for s in summary for r in s.present_risks if rules.risks[r].get("scale") in LOCAL_SCALES)
     return counts.most_common(1)[0] if counts else None
@@ -49,7 +50,7 @@ def _join(names: list[str]) -> str:
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1] if names else ""
 
 
-def build_report(out: EngineOutput, rules: RiskRules, report_type: str, site_ids: list[str] | None,
+def build_report(out: EngineOutput, rules: ReportRules, report_type: str, site_ids: list[str] | None,
                  generated_at: datetime) -> ReportDocument:
     """All 14 results of every selected factory, regardless of any UI filter."""
     T = rules.report_templates
@@ -83,7 +84,7 @@ def build_report(out: EngineOutput, rules: RiskRules, report_type: str, site_ids
 
 
 # ---- one factory -------------------------------------------------------------------------------------------
-def _block(r: RiskResult, rules: RiskRules, ctx: BasinContext) -> RiskBlock:
+def _block(r: RiskResult, rules: ReportRules, ctx: BasinContext) -> RiskBlock:
     e = explain(r, rules, ctx.name_0)
     trend = r.drivers.get("trend_sentence")
     why = r.reason.replace(trend, "").replace("  ", " ").strip() if trend else r.reason  # trend lives in Outlook
@@ -101,7 +102,7 @@ def _block(r: RiskResult, rules: RiskRules, ctx: BasinContext) -> RiskBlock:
     )
 
 
-def _outlook_table(r: RiskResult, rules: RiskRules) -> list[dict[str, str]]:
+def _outlook_table(r: RiskResult, rules: ReportRules) -> list[dict[str, str]]:
     """One row per scenario with values formatted for display; empty for indicators without future values."""
     T, cfg = rules.report_templates, rules.for_risk(r.risk_id)
     today = F.fmt_value(r.values.raw, cfg, keep_decimals=True) if r.values.raw is not None and r.values.category != -1 else ""
@@ -114,7 +115,7 @@ def _outlook_table(r: RiskResult, rules: RiskRules) -> list[dict[str, str]]:
     return rows
 
 
-def _header(ctx: BasinContext, rules: RiskRules) -> tuple[dict, list[str]]:
+def _header(ctx: BasinContext, rules: ReportRules) -> tuple[dict, list[str]]:
     f, T = ctx.factory, rules.templates
     warning, caveats = None, list(ctx.caveats)
     if ctx.match_method == MatchMethod.UNMATCHED:
@@ -129,7 +130,7 @@ def _header(ctx: BasinContext, rules: RiskRules) -> tuple[dict, list[str]]:
     return {k: v for k, v in header.items() if v is not None}, caveats
 
 
-def _glance(ctx: BasinContext, summ: FactorySummary, blocks: dict[str, RiskBlock], rules: RiskRules) -> str:
+def _glance(ctx: BasinContext, summ: FactorySummary, blocks: dict[str, RiskBlock], rules: ReportRules) -> str:
     T, name = rules.report_templates, ctx.factory.site_name
     if ctx.match_method == MatchMethod.UNMATCHED:
         return T["glance_unmatched"].format(name=name)
@@ -150,7 +151,7 @@ def _glance(ctx: BasinContext, summ: FactorySummary, blocks: dict[str, RiskBlock
     return " ".join(parts)
 
 
-def _factory(ctx: BasinContext, results: list[RiskResult], summ: FactorySummary, rules: RiskRules) -> FactoryReport:
+def _factory(ctx: BasinContext, results: list[RiskResult], summ: FactorySummary, rules: ReportRules) -> FactoryReport:
     order = {rid: i for i, rid in enumerate(rules.risks)}
     blocks = {r.risk_id: _block(r, rules, ctx) for r in sorted(results, key=lambda r: order[r.risk_id])}
     sections: dict[str, list[RiskBlock]] = {k: [] for k in ("present", "watch", "not_present", "no_data", "impact")}
@@ -179,7 +180,7 @@ def _factory(ctx: BasinContext, results: list[RiskResult], summ: FactorySummary,
 
 # ---- portfolio ---------------------------------------------------------------------------------------------
 def _portfolio(ctxs: list[BasinContext], sums: list[FactorySummary], factories: list[FactoryReport],
-               rules: RiskRules) -> PortfolioSummary:
+               rules: ReportRules) -> PortfolioSummary:
     T = rules.report_templates
     columns = [{"risk_id": rid, "name": c["name"], "short_name": c.get("short_name", c["name"]), "group": c["group"],
                 "kind": c.get("kind", rules.defaults["kind"])} for rid, c in rules.risks.items() if rid != OVERALL]
@@ -215,7 +216,7 @@ def _portfolio(ctxs: list[BasinContext], sums: list[FactorySummary], factories: 
 
 
 # ---- appendix ------------------------------------------------------------------------------------------------
-def _methodology(rules: RiskRules) -> list[dict]:
+def _methodology(rules: ReportRules) -> list[dict]:
     rows = []
     for rid in rules.risks:
         c = rules.for_risk(rid)

@@ -3,17 +3,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from hydris_risk.config import RiskRules
+from hydris_report.config import ReportRules
 from hydris_risk.engine import EngineOutput
-from hydris_risk.reporting.builder import build_report, report_filename
-from hydris_risk.reporting.render_html import render_html
-from hydris_risk.reporting.render_pdf import render_pdf
+from hydris_report.builder import build_report, report_filename
+from hydris_report.render_html import render_html
+from hydris_report.render_pdf import render_pdf
 
 FORMATS = ("pdf", "html")
 MIME = {"pdf": "application/pdf", "html": "text/html"}
 
 
-def render_report(out: EngineOutput, rules: RiskRules, report_type: str, site_id: str | None, fmt: str,
+def render_report(out: EngineOutput, rules: ReportRules, report_type: str, site_id: str | None, fmt: str,
                   generated_at: datetime) -> tuple[str, bytes]:
     """(file name, bytes). A portfolio covers every factory in `out`; a factory report needs `site_id`. Filters never apply."""
     if fmt not in FORMATS:

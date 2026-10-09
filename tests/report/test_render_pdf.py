@@ -6,15 +6,16 @@ from io import BytesIO
 import pytest
 from pypdf import PdfReader
 
-from hydris_risk.config import load_rules, load_settings
+from hydris_risk.config import load_settings
 from hydris_risk.data.aqueduct_repository import AqueductRepository
+from hydris_report.config import load_report_rules
 from hydris_risk.engine import RiskEngine
 from hydris_risk.io.input_loader import load_factories
 from hydris_risk.models import Factory
-from hydris_risk.reporting.builder import build_report
-from hydris_risk.reporting.render_pdf import render_pdf
+from hydris_report.builder import build_report
+from hydris_report.render_pdf import render_pdf
 
-RULES = load_rules()
+RULES = load_report_rules()
 NOW = datetime(2026, 10, 8, 9, 30)
 NAMES = [c["name"] for c in RULES.risks.values()]
 FRAMING = "Not present means the basin-level value is below Hydris's Watch threshold in Aqueduct."

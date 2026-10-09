@@ -30,7 +30,6 @@ class RiskRules(BaseModel):
     defaults: dict[str, Any]
     risks: dict[str, dict[str, Any]]
     templates: dict[str, Any] = {}
-    report_templates: dict[str, Any] = {}
 
     def for_risk(self, risk_id: str) -> dict[str, Any]:
         """Defaults overlaid with the risk's own block."""

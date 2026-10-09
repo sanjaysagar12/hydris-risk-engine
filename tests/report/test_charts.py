@@ -3,12 +3,13 @@ import io
 import pytest
 from PIL import Image
 
-from hydris_risk.config import load_rules, load_settings
+from hydris_risk.config import load_settings
+from hydris_report.config import load_report_rules
 from hydris_risk.engine import RiskEngine
 from hydris_risk.models import Factory, MonthlyValue
-from hydris_risk.reporting.charts import monthly_chart_png, overall_chart_png
+from hydris_report.charts import monthly_chart_png, overall_chart_png
 
-RULES = load_rules()
+RULES = load_report_rules()
 PNG = b"\x89PNG\r\n\x1a\n"
 
 
@@ -61,7 +62,7 @@ def test_overall_chart():
 def doc(synthetic_repo):
     from datetime import datetime
 
-    from hydris_risk.reporting.builder import build_report
+    from hydris_report.builder import build_report
     out = RiskEngine(synthetic_repo, RULES, load_settings()).run(
         [Factory(site_id="a", site_name="A", lat=10.5, lon=10.5), Factory(site_id="b", site_name="B", lat=11.5, lon=10.5)])
     return build_report(out, RULES, "portfolio", None, datetime(2026, 10, 8))

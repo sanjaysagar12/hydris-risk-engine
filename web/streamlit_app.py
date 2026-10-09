@@ -1,10 +1,9 @@
-"""Hydris water-risk screening app. Run: streamlit run app/streamlit_app.py"""
+"""Hydris water-risk screening app. Run: streamlit run web/streamlit_app.py"""
 from __future__ import annotations
 
 import hashlib
 import io
 import sys
-from datetime import datetime
 from collections import Counter
 from pathlib import Path
 
@@ -19,6 +18,7 @@ import streamlit as st  # noqa: E402
 from components.charts import group_chart  # noqa: E402
 from components.factory_map import factory_map  # noqa: E402
 from components.factory_table import build_table, factory_table  # noqa: E402
+from components.report_downloads import report_button  # noqa: E402
 from components.risk_card import STATUS_ORDER, badge_html, risk_card, status_rank, tag_html  # noqa: E402
 
 from hydris_risk.config import load_rules, load_settings  # noqa: E402
@@ -27,8 +27,6 @@ from hydris_risk.io.input_loader import load_factories  # noqa: E402
 from hydris_risk.io.output_writer import csv_bytes, json_bytes, long_frame, wide_frame  # noqa: E402
 from hydris_risk.models import MatchMethod  # noqa: E402
 from hydris_risk.reasoning import formatters as F  # noqa: E402
-from hydris_risk.reporting.builder import report_filename  # noqa: E402
-from hydris_risk.reporting.export import MIME, render_report  # noqa: E402
 
 GROUPS = ["Physical: quantity", "Physical: quality", "Regulatory & reputational"]
 IMPACT = "Downstream impact"
@@ -61,21 +59,6 @@ def run_engine(file_hash: str, _csv_bytes: bytes):
     out = RiskEngine(get_repo(), get_rules()).run(factories)
     exports = {"long": csv_bytes(long_frame(out)), "wide": csv_bytes(wide_frame(out)), "json": json_bytes(out)}
     return out, issues, exports
-
-
-@st.cache_data(show_spinner="Rendering report...")
-def make_report(file_hash: str, report_type: str, site_id: str | None, fmt: str, day: str, _out):
-    """Rendered bytes cached by (file, report type, site, format, day). Reports always hold all 14 results: no UI filter applies."""
-    name, data = render_report(_out, get_rules(), report_type, site_id, fmt, datetime.now())
-    return name, data
-
-
-def report_button(label: str, report_type: str, site_id: str | None, fmt: str, key: str) -> None:
-    """Rendered only when clicked (callable data), then cached."""
-    day = datetime.now().strftime("%Y%m%d")
-    name = report_filename(report_type, site_id, datetime.now(), fmt)
-    st.download_button(label, data=lambda: make_report(file_hash, report_type, site_id, fmt, day, out)[1], file_name=name,
-                       mime=MIME[fmt], key=key, on_click="ignore")
 
 
 def footer() -> None:
@@ -136,8 +119,8 @@ st.sidebar.download_button("results_wide.csv", exports["wide"], "results_wide.cs
 st.sidebar.download_button("results.json", exports["json"], "results.json", "application/json")
 with st.sidebar:
     st.caption("Reports include all 14 results for every factory, whatever the filters above.")
-    report_button("Download portfolio report (PDF)", "portfolio", None, "pdf", "dl_portfolio_pdf")
-    report_button("Download portfolio report (HTML)", "portfolio", None, "html", "dl_portfolio_html")
+    report_button("Download portfolio report (PDF)", "portfolio", None, "pdf", "dl_portfolio_pdf", out, file_hash)
+    report_button("Download portfolio report (HTML)", "portfolio", None, "html", "dl_portfolio_html", out, file_hash)
 
 # ---------------------------------------------------------------- top: all factories
 table = build_table(out, rules)
@@ -202,9 +185,9 @@ for c in ctx.caveats:
     st.warning(c)
 rb1, rb2, rb3 = st.columns([1, 1, 3])
 with rb1:
-    report_button("Download factory report (PDF)", "factory", site, "pdf", "dl_factory_pdf")
+    report_button("Download factory report (PDF)", "factory", site, "pdf", "dl_factory_pdf", out, file_hash)
 with rb2:
-    report_button("Download factory report (HTML)", "factory", site, "html", "dl_factory_html")
+    report_button("Download factory report (HTML)", "factory", site, "html", "dl_factory_html", out, file_hash)
 rb3.caption("Reports include all 14 results, regardless of the filters.")
 
 # overall textile card

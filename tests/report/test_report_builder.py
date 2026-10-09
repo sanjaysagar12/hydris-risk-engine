@@ -6,13 +6,14 @@ from pathlib import Path
 import pytest
 
 from hydris_risk import __version__
-from hydris_risk.config import ROOT, load_rules, load_settings
+from hydris_risk.config import ROOT, load_settings
+from hydris_report.config import load_report_rules
 from hydris_risk.engine import RiskEngine
 from hydris_risk.models import Factory, RiskStatus
-from hydris_risk.reporting.builder import build_report, most_common_local, read_limitations, report_filename
+from hydris_report.builder import build_report, most_common_local, read_limitations, report_filename
 from hydris_risk.services.registry import REGISTRY, get_services
 
-RULES = load_rules()
+RULES = load_report_rules()
 NOW = datetime(2026, 10, 8, 9, 30)
 
 

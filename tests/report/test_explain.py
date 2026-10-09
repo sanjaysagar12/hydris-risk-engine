@@ -3,13 +3,14 @@ import re
 
 import pytest
 
-from hydris_risk.config import load_rules
+
+from hydris_report.config import load_report_rules
 from hydris_risk.geo.locator import Locator
 from hydris_risk.models import Factory, RiskStatus
-from hydris_risk.reporting.explain import explain, fmt_gap, fmt_line, outlook_sentence
+from hydris_report.explain import explain, fmt_gap, fmt_line, outlook_sentence
 from hydris_risk.services.registry import REGISTRY
 
-RULES = load_rules()
+RULES = load_report_rules()
 SITES = {"inland": (10.5, 10.5), "coast": (10.5, 11.5), "arid": (11.5, 10.5)}
 P, W, N = RiskStatus.PRESENT, RiskStatus.WATCH, RiskStatus.NOT_PRESENT
 

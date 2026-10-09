@@ -18,7 +18,7 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
-from hydris_risk.reporting.models import FactoryReport, ReportDocument, RiskBlock
+from hydris_report.models import FactoryReport, ReportDocument, RiskBlock
 
 FONT_DIR = Path(__file__).parent / "assets" / "fonts"
 REG, BOLD = "DejaVuSans", "DejaVuSans-Bold"

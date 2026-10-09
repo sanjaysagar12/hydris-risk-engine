@@ -7,7 +7,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
-from hydris_risk.reporting.models import ReportDocument
+from hydris_report.models import ReportDocument
 
 STATUS_WORDS = {"present": "Present", "watch": "Watch", "not_present": "Not present", "no_data": "No data", "error": "Error",
                 "impact": "Downstream impact"}

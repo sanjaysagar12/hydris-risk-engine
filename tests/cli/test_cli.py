@@ -1,7 +1,7 @@
 import pandas as pd
 from typer.testing import CliRunner
 
-from hydris_risk.cli import app
+from hydris_cli.main import app
 
 runner = CliRunner()
 

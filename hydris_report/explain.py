@@ -8,7 +8,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
-from hydris_risk.config import RiskRules
+from hydris_report.config import ReportRules
 from hydris_risk.models import FutureValue, RiskResult, RiskStatus
 from hydris_risk.reasoning import formatters as F
 
@@ -89,7 +89,7 @@ _LEVEL = {None: 0, "watch": 1, "present": 2}
 
 
 # ---- main entry points --------------------------------------------------------------------------------------
-def explain(result: RiskResult, rules: RiskRules, country: str | None = None) -> Explanation:
+def explain(result: RiskResult, rules: ReportRules, country: str | None = None) -> Explanation:
     """Position sentence, what-would-change sentence and special-case notes for one result."""
     T, cfg = rules.report_templates, rules.for_risk(result.risk_id)
     status, case = result.status, result.drivers.get("case")
@@ -123,7 +123,7 @@ def _val(raw: float, cfg: dict[str, Any]) -> str:
     return F.fmt_value(raw, cfg, keep_decimals=True)
 
 
-def _generic(result: RiskResult, rules: RiskRules, cfg: dict[str, Any], T: dict[str, Any]) -> tuple[str | None, str | None]:
+def _generic(result: RiskResult, rules: ReportRules, cfg: dict[str, Any], T: dict[str, Any]) -> tuple[str | None, str | None]:
     thr, status, v = cfg["thresholds"], result.status, result.values
     titles = F.cat_titles(cfg)
     watch, present = thr[cfg["watch_min_cat"] - 1], thr[cfg["present_min_cat"] - 1]
@@ -179,7 +179,7 @@ def _future_sentences(future: list[FutureValue], status: RiskStatus, watch: floa
     return " ".join(out) or None
 
 
-def outlook_sentence(result: RiskResult, rules: RiskRules) -> str | None:
+def outlook_sentence(result: RiskResult, rules: ReportRules) -> str | None:
     """The business-as-usual path in words. 'rises'/'falls' only when every step moves the same way; otherwise the turn is named."""
     cfg, T = rules.for_risk(result.risk_id), rules.report_templates
     bau = {f.year: f for f in _scenario_values(result.future, "bau")}

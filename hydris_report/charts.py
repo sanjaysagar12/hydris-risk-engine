@@ -9,7 +9,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
 from hydris_risk.models import MonthlyValue
-from hydris_risk.reporting.explain import fmt_line
+from hydris_report.explain import fmt_line
 
 BAR, WATCH, PRESENT, GRID, TEXT = "#1570ef", "#f79009", "#b42318", "#d0d5dd", "#1d2939"
 DPI = 150  # 945 px wide at 6.3 in: sharp in print, and a third cheaper to encode than 200

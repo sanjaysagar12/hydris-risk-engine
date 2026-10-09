@@ -4,13 +4,14 @@ from datetime import datetime
 
 import pytest
 
-from hydris_risk.config import load_rules, load_settings
+from hydris_risk.config import load_settings
+from hydris_report.config import load_report_rules
 from hydris_risk.engine import RiskEngine
 from hydris_risk.models import Factory
-from hydris_risk.reporting.builder import build_report
-from hydris_risk.reporting.render_html import render_html
+from hydris_report.builder import build_report
+from hydris_report.render_html import render_html
 
-RULES = load_rules()
+RULES = load_report_rules()
 NOW = datetime(2026, 10, 8, 9, 30)
 NAMES = [c["name"] for c in RULES.risks.values()]
 

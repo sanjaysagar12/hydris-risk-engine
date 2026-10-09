@@ -1,0 +1,75 @@
+# Wording of the exportable report. Read only by hydris_report; the risk engine never loads this file.
+# Sentences for the exportable report (hydris_report/explain.py). Same rule as above: filled only from data.
+# {subject} is "It" for a risk and impact_subject for a downstream-impact indicator.
+report_templates:
+  impact_subject: "The basin's contribution to downstream waters"
+  gap_above: "{amount} above"
+  gap_below: "{amount} below"
+  gap_level: "level with"
+  position_present: "At {value_phrase}, {name} is {present_gap} the {present_title} line ({present_line})."
+  position_top: "At {value_phrase}, {name} is in Aqueduct's highest category ({top_line} and above)."
+  position_two_lines: "At {value_phrase}, {name} is {watch_gap} the Watch line ({watch_line}) and {present_gap} the {present_title} line ({present_line})."
+  change_present: "{subject} would drop to Watch below {present_line}."
+  change_watch: "{subject} becomes Present if it reaches {present_line}."
+  change_not_present: "{subject} would move to Watch at {watch_line}."
+  scenario_long: {bau: "Business as usual (SSP3-RCP7.0)", opt: "Optimistic (SSP1-RCP2.6)", pes: "Pessimistic (SSP5-RCP8.5)"}
+  outlook_today: "Today"
+  scenario: {bau: "business as usual", opt: "the optimistic scenario", pes: "the pessimistic scenario"}
+  future_cross_present: "Under {scenario} {it} is projected to cross the {present_title} line by {year}."
+  future_reach_watch: "Under {scenario} {it} is projected to reach the Watch line by {year}."
+  outlook_up: "Under business as usual {name} rises from {base} today to {v30} by 2030, {v50} by 2050 and {v80} by 2080."
+  outlook_down: "Under business as usual {name} falls from {base} today to {v30} by 2030, {v50} by 2050 and {v80} by 2080."
+  outlook_flat: "Under business as usual {name} changes little, from {base} today to {v80} by 2080."
+  outlook_turn_late: "Under business as usual {name} goes from {base} today to {v30} by 2030 and {v50} by 2050, then {turn} to {v80} by 2080."
+  outlook_turn_early: "Under business as usual {name} goes from {base} today to {v30} by 2030, then {turn} to {v50} by 2050 and {v80} by 2080."
+  outlook_irregular: "Under business as usual {name} goes from {base} today to {v30} by 2030, {v50} by 2050 and {v80} by 2080."
+  outlook_turn: {down: eases, up: climbs again}
+  # special cases (override the generic sentences)
+  position_no_risk: "Aqueduct records no coastal flood risk for this basin; there is no threshold to compare against."
+  position_arid: "Aqueduct does not calculate a reliable ratio for very dry, low-use basins, so position against thresholds is not meaningful."
+  change_gtd_insignificant: "This would change only if a statistically significant declining trend were found. Aqueduct's model covers 1990–2014; recent local well data (e.g. CGWB) may show a different picture."
+  note_low_collection: "The indicator cannot measure pollution from uncollected sewage, so Watch reflects missing sewer collection, not low pollution."
+  note_country_scale: "This value is the same for every site in {country}, so it does not distinguish this factory from others in the country."
+  note_no_data_area: "Aqueduct has no value for this indicator in this area, so no status can be given. This is a data gap, not evidence of low risk."
+  note_no_data_unmatched: "This site could not be matched to an Aqueduct polygon, so no status can be given. This is a data gap, not evidence of low risk."
+  # --- document-level text ---
+  title: "Water Risk Screening Report"
+  disclaimer: "Basin-level screening data. Not a substitute for site-level assessment."
+  citation: 'Kuzma, S. et al. 2023. "Aqueduct 4.0: Updated decision-relevant global water risk indicators." Technical Note. WRI. doi.org/10.46830/writn.23.00061'
+  citation_url: "https://doi.org/10.46830/writn.23.00061"
+  data_license: "Data: WRI Aqueduct 4.0, licensed CC BY 4.0."
+  report_type_label: {factory: "Factory report", portfolio: "Portfolio report"}
+  not_present_framing: "Not present means the basin-level value is below Hydris's Watch threshold in Aqueduct. It does not rule out site-level issues, which depend on the factory's own water sources and operations."
+  impact_intro: "These indicators describe what the basin contributes to downstream waters. They are not a risk to the factory's own supply and are not counted in the risk totals."
+  status_definitions:
+    present: "The basin-level value is at or above Hydris's Present line for this indicator (Aqueduct's High category or above)."
+    watch: "The value is at or above Hydris's Watch line (Aqueduct's Medium–High category) but below the Present line."
+    not_present: "The value is below the Watch line. This is a screening result, not a guarantee of safety."
+    no_data: "Aqueduct has no value for this indicator at this location. This is a data gap, not evidence of low risk."
+    error: "The risk could not be assessed. Other results are unaffected."
+    impact: "Downstream impact: what the basin contributes to downstream waters, not a risk to the factory. Shown separately and not counted."
+  # --- at a glance (per factory) ---
+  glance_unmatched: "{name} could not be matched to an Aqueduct polygon, so no risk was assessed."
+  glance_counts: "{name} has {n_present} Present and {n_watch} Watch risks out of {n_assessed} assessed."
+  glance_present: "Present: {names}."
+  glance_present_none: "No risk is Present."
+  glance_watch: "Watch: {names}."
+  glance_watch_none: "No risk is on Watch."
+  glance_overall: "The overall textile water risk score is {score} of 5, classed as {label}."
+  glance_no_data_one: "1 risk has no data."
+  glance_no_data_many: "{n} risks have no data."
+  glance_error_one: "1 risk could not be assessed."
+  glance_error_many: "{n} risks could not be assessed."
+  glance_impact: "Downstream impact, reported separately: {name} is {status}."
+  # --- portfolio summary ---
+  portfolio_local: "The local risks most often Present are {items}."
+  portfolio_local_item: "{name} ({n} of {total} sites)"
+  portfolio_local_none: "No local (sub-basin or aquifer scale) risk is Present at any site."
+  portfolio_country: "Country-scale indicators ({names}) are identical for all sites in a country and do not distinguish between them."
+  portfolio_unmatched: "{n} of {total} sites could not be matched to an Aqueduct polygon and have no assessment."
+  kpi_none: "None"
+  # --- appendix ---
+  methodology_intro: "Watch and Present lines per indicator. Lines apply to the raw value; a value at or above a line is in that category."
+  methodology_note_arid: "Arid basins (bws, bwd) have no ratio; Hydris treats them as Present."
+  methodology_threshold_note: "Watch and Present lines are measured from the data. Aqueduct's labels round the category edges (for example the riverine flood label says 0.2% where the measured edge is 0.3%), so Hydris uses the edges that reproduce Aqueduct's published categories for every polygon."
+  note_error: "{message}. This risk could not be assessed; other results are unaffected."

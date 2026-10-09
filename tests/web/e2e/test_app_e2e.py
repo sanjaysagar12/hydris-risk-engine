@@ -19,7 +19,7 @@ from hydris_risk.config import load_settings
 
 pytestmark = pytest.mark.e2e
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 RISKS = ["bws", "bwd", "iav", "sev", "gtd", "rfr", "cfr", "drr", "ucw", "cep", "udw", "usa", "rri", "overall_textile"]
 BAD_CSV = ("site_id,site_name,lat,lon,country\n"
            "G1,Good Mill,11.1085,77.3411,India\n"
@@ -37,7 +37,7 @@ def server_url():
         port = s.getsockname()[1]
     log = open(ROOT / "outputs" / "e2e_streamlit.log", "wb") if (ROOT / "outputs").exists() else subprocess.DEVNULL
     proc = subprocess.Popen(
-        [sys.executable, "-m", "streamlit", "run", str(ROOT / "app" / "streamlit_app.py"), "--server.headless", "true",
+        [sys.executable, "-m", "streamlit", "run", str(ROOT / "web" / "streamlit_app.py"), "--server.headless", "true",
          "--server.port", str(port), "--browser.gatherUsageStats", "false"], stdout=log, stderr=subprocess.STDOUT, cwd=ROOT)
     url = f"http://localhost:{port}"
     try:
